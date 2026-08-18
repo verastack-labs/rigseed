@@ -24,3 +24,12 @@ reserved for data.
 Design foundations come from `rigseed-internal/docs/design-foundations.md`. This repo
 will carry its own `DESIGN.md` with frontmatter mirroring the shared values, with
 sections tagged `[shared]` and `[site]`.
+
+## Licence
+
+Apache License 2.0 — see `LICENSE`.
+
+## Contact
+
+- Project: verastack.labs@gmail.com
+- Maintainer: therealriganb@gmail.com
