@@ -11,7 +11,7 @@ GitHub Pages.
 ## What rigseed is
 
 A Tauri shell that launches `qbittorrent-nox` as a sidecar and drives it entirely over
-the existing Web API v2.x. No C++/Qt is touched — it is a frontend replacement for a
+the existing Web API v2.x. No C++/Qt is touched - it is a frontend replacement for a
 dated GUI, plus a first-run experience and a theming layer the stock client does not
 have.
 
@@ -27,7 +27,7 @@ sections tagged `[shared]` and `[site]`.
 
 ## Licence
 
-Apache License 2.0 — see `LICENSE`.
+Apache License 2.0 - see `LICENSE`.
 
 ## Contact
 
