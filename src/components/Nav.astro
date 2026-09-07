@@ -57,11 +57,15 @@ const sections = [
   const progress = document.querySelector<HTMLElement>('[data-progress]')
 
   if (nav && links && indicator && progress) {
-    const FLOOR = 120
-    const THRESHOLD = 6
+    // The bar never hides. It carries a progress line and a section
+    // indicator, and both are only worth drawing if they are on screen; a
+    // progress bar you have to scroll up to consult is decoration.
+    //
+    // Low, so the surface arrives as soon as content starts passing under the
+    // bar rather than after a deliberate scroll.
+    const FLOOR = 24
 
     const spies = Array.from(links.querySelectorAll<HTMLAnchorElement>('[data-spy]'))
-    let last = window.scrollY
     let ticking = false
     let active: HTMLAnchorElement | null = null
 
@@ -97,16 +101,9 @@ const sections = [
 
     const update = () => {
       const y = window.scrollY
-      const delta = y - last
       const max = document.documentElement.scrollHeight - window.innerHeight
 
       nav.classList.toggle('is-stuck', y > FLOOR)
-
-      if (y <= FLOOR) {
-        nav.classList.remove('is-hidden')
-      } else if (Math.abs(delta) > THRESHOLD) {
-        nav.classList.toggle('is-hidden', delta > 0)
-      }
 
       // Guard the divide: a page shorter than the viewport has max 0, and
       // 0/0 is NaN, which silently leaves the bar at whatever it last was.
@@ -114,7 +111,6 @@ const sections = [
 
       moveIndicator(currentSection())
 
-      last = y
       ticking = false
     }
 
@@ -136,11 +132,6 @@ const sections = [
       moveIndicator(held)
     })
 
-    // Keyboard focus must never land on an offscreen link, and a jump to a
-    // section must not leave the bar covering what it moved to.
-    nav.addEventListener('focusin', () => nav.classList.remove('is-hidden'))
-    window.addEventListener('hashchange', () => nav.classList.remove('is-hidden'))
-
     update()
   }
 </script>
@@ -151,7 +142,6 @@ const sections = [
     top: 0;
     z-index: 10;
     transition:
-      transform var(--t-base) var(--ease),
       background-color var(--t-base) ease,
       border-color var(--t-base) ease;
     border-bottom: 1px solid transparent;
@@ -161,10 +151,6 @@ const sections = [
     background: color-mix(in srgb, var(--bg) 86%, transparent);
     border-bottom-color: var(--line);
     backdrop-filter: blur(10px);
-  }
-
-  .is-hidden {
-    transform: translateY(-100%);
   }
 
   .bar {
