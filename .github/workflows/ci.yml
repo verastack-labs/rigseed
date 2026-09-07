@@ -1,0 +1,64 @@
+name: CI
+
+# Gates pull requests. Without this the only verification is deploy.yml, which
+# runs after a merge, so a broken change reaches main before anything notices
+# and the first symptom is a failed deployment.
+on:
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - LICENSE
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Format and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        run: pnpm run format:check
+
+      # No `astro check` step. TypeScript 7 is the native compiler and does not
+      # expose the programmatic API the checker relies on, so it fails outright:
+      #
+      #   The TypeScript module loaded (found 7.0.2) does not expose the
+      #   programmatic API that `astro check` relies on.
+      #
+      # Pinning TypeScript back to 6.x would fix it and would also be a trap,
+      # since any later update silently re-breaks the step. Astro tracks native
+      # support at withastro/roadmap discussion 1321. Worth revisiting then;
+      # there are about fifty lines of TypeScript here in the meantime.
+
+      - name: Build
+        run: pnpm run build
+
+      # Duplicated from deploy.yml on purpose. This is the failure that builds
+      # green and 404s every asset in production, so it should fail on the pull
+      # request rather than after the merge.
+      - name: Confirm the build is rooted at /rigseed
+        run: |
+          set -euo pipefail
+          if ! grep -q '"/rigseed/_astro/' dist/index.html; then
+            echo "::error::built asset paths are not under /rigseed, so Pages will 404 them"
+            exit 1
+          fi
+          echo "asset paths are correctly based"
