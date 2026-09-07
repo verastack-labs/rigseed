@@ -1,0 +1,197 @@
+---
+import { Image } from 'astro:assets'
+import Mark from './Mark.astro'
+import dark from '../assets/screens/02-transfers-dark.png'
+
+// Voice: plain, factual, slightly technical. Sentence case throughout, no
+// exclamation marks, no encouragement. rigseed is lowercase always, including
+// sentence-initial, so the h1 starts lowercase on purpose.
+const version = 'v0.1.0'
+---
+
+<header class="hero">
+  <nav class="wrap bar" aria-label="Primary">
+    <a class="brand" href={import.meta.env.BASE_URL}>
+      <Mark size={22} class="brand-mark" />
+      <span class="brand-name">rigseed</span>
+    </a>
+    <div class="bar-links">
+      <a href="#screens">Screens</a>
+      <a href="#theming">Theming</a>
+      <a href="#download">Download</a>
+      <a href="https://github.com/verastack-labs/rigseed-app">Source</a>
+    </div>
+  </nav>
+
+  <div class="wrap inner">
+    <!-- The eyebrow is the one uppercase element in the system, so it must not
+       carry another project's brand name: text-transform would render
+       qBittorrent as QBITTORRENT and mangle a name that is not ours to
+       restyle. -->
+  <p class="eyebrow">Desktop client</p>
+    <h1>rigseed puts a modern interface on the daemon you already trust.</h1>
+    <p class="lede">
+      It drives qBittorrent over the Web API the daemon already exposes. The engine underneath is
+      unchanged, so nothing about how your torrents run is new. Only the part you look at.
+    </p>
+
+    <div class="actions">
+      <a class="btn primary" href="#download">Download {version}</a>
+      <a class="btn" href="#screens">See the screens</a>
+    </div>
+
+    <!-- The API is visible. Every screen in the app prints the endpoints it
+         exercises, and the site keeps the habit rather than dropping it at the
+         marketing boundary. -->
+    <p class="endpoints mono">sync/maindata · torrents/info · app/preferences</p>
+  </div>
+
+  <div class="wrap shot-wrap">
+    <Image
+      src={dark}
+      alt="rigseed showing six torrents in grid view, with a sidebar of status filters, categories and tags, and a live download and upload graph."
+      widths={[720, 1080, 1440]}
+      sizes="(min-width: 70rem) 64rem, 100vw"
+      loading="eager"
+      class="shot"
+    />
+  </div>
+</header>
+
+<style>
+  .hero {
+    position: relative;
+    padding-block: 1.25rem clamp(3rem, 7vw, 5rem);
+    overflow: hidden;
+  }
+
+  /* The accent, very dilute, behind the fold. It reads as the surface being
+     tinted rather than as a gradient sitting on top of it. */
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: -30% 0 auto;
+    height: 60rem;
+    background: radial-gradient(
+      50% 40% at 50% 30%,
+      color-mix(in srgb, var(--accent) 13%, transparent),
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.5rem 3rem;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .brand-name {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+
+  .bar-links {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.9375rem;
+  }
+
+  .bar-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+
+  .bar-links a:hover {
+    color: var(--text);
+  }
+
+  @media (max-width: 40rem) {
+    .bar-links a:not(:last-child) {
+      display: none;
+    }
+  }
+
+  .inner {
+    text-align: left;
+  }
+
+  h1 {
+    max-width: 20ch;
+  }
+
+  .lede {
+    margin-top: 1.25rem;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 2rem;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.625rem 1.125rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-control);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition:
+      background-color var(--t-fast) ease,
+      border-color var(--t-fast) ease,
+      transform var(--t-fast) var(--spring);
+  }
+
+  .btn:hover {
+    background: var(--surface2);
+    transform: translateY(-1px);
+  }
+
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-on);
+  }
+
+  .btn.primary:hover {
+    background: color-mix(in srgb, var(--accent) 88%, var(--text));
+  }
+
+  .endpoints {
+    margin-top: 1.75rem;
+    color: var(--text-dimmer);
+    font-size: 0.75rem;
+  }
+
+  .shot-wrap {
+    margin-top: clamp(2.5rem, 6vw, 4rem);
+  }
+
+  /* Shadow is reserved for things that genuinely float, and a hero image is
+     one of them. The border is the same 1px var(--line) as everything else. */
+  .shot {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow-card);
+  }
+</style>

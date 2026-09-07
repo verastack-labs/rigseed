@@ -1,14 +1,11 @@
 ---
-
+import Base from '../layouts/Base.astro'
+import Hero from '../components/Hero.astro'
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>rigseed</title>
-  </head>
-  <body>
-    <h1>rigseed</h1>
-  </body>
-</html>
+<Base
+  title="rigseed, a desktop client for qBittorrent"
+  description="rigseed puts a modern interface on qBittorrent, driving the daemon over the Web API it already exposes. Windows, macOS and Linux."
+>
+  <Hero />
+</Base>
