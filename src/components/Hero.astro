@@ -50,9 +50,21 @@ const version = 'v0.1.0'
     <Image
       src={dark}
       alt="rigseed showing six torrents in grid view, with a sidebar of status filters, categories and tags, and a live download and upload graph."
-      widths={[720, 1080, 1440]}
+      {/*
+        The container is 64rem, so a 2x display needs 2048 physical pixels and
+        a 3x one needs 3072. Capping the srcset at 1440w made the browser take
+        that file and upscale it, which is what made the first version look
+        soft: the capture was always 2880 wide, the widths list was not.
+
+        quality 90 rather than the default 80. This is flat UI with 1px borders
+        and small mono type, where webp's default ringing shows on every rule,
+        and the file is only a few tens of kB either way.
+      */}
+      widths={[720, 1080, 1440, 2048, 2880]}
       sizes="(min-width: 70rem) 64rem, 100vw"
+      quality={90}
       loading="eager"
+      fetchpriority="high"
       class="shot"
     />
   </div>
