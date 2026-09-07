@@ -4,13 +4,16 @@ import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
 import '../styles/tokens.css'
 import '../styles/base.css'
+import StructuredData from '../components/StructuredData.astro'
 
 interface Props {
   title: string
   description: string
+  version: string
+  releaseUrl: string
 }
 
-const { title, description } = Astro.props
+const { title, description, version, releaseUrl } = Astro.props
 const social = new URL('social.png', Astro.site + Astro.url.pathname).toString()
 ---
 
@@ -55,6 +58,7 @@ const social = new URL('social.png', Astro.site + Astro.url.pathname).toString()
         if (accent) document.documentElement.dataset.accent = accent
       } catch {}
     </script>
+    <StructuredData version={version} releaseUrl={releaseUrl} />
   </head>
   <body>
     <slot />
