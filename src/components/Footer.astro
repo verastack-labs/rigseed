@@ -1,0 +1,144 @@
+---
+import Mark from './Mark.astro'
+
+const repo = 'https://github.com/verastack-labs/rigseed-app'
+const year = new Date().getFullYear()
+---
+
+<footer>
+  <div class="wrap inner">
+    <div class="brand-col">
+      <a class="brand" href={import.meta.env.BASE_URL}>
+        <Mark size={20} />
+        <span class="brand-name">rigseed</span>
+      </a>
+      <p class="tag">A desktop client for qBittorrent, by Verastack Labs.</p>
+    </div>
+
+    <nav aria-label="Footer">
+      <div class="col">
+        <h2 class="eyebrow">Project</h2>
+        <a href={repo}>Source</a>
+        <a href={`${repo}/releases`}>Releases</a>
+        <a href={`${repo}/issues`}>Issues</a>
+      </div>
+
+      <div class="col">
+        <h2 class="eyebrow">Licences</h2>
+        <a href="https://www.apache.org/licenses/LICENSE-2.0">rigseed, Apache 2.0</a>
+        <a href="https://www.gnu.org/licenses/gpl-3.0.html">qbittorrent-nox, GPL 3.0</a>
+        <a href={`${repo}/releases/latest`}>Corresponding source</a>
+      </div>
+
+      <div class="col">
+        <h2 class="eyebrow">Contact</h2>
+        <a href="mailto:verastack.labs@gmail.com">verastack.labs@gmail.com</a>
+      </div>
+    </nav>
+  </div>
+
+  <!--
+    Not boilerplate. rigseed ships a compiled qbittorrent-nox, and GPLv3
+    section 6 requires the corresponding source to be offered from the same
+    place as the binary. The release workflow attaches that archive to every
+    release for exactly this reason, and it refuses to publish without it.
+    Saying so here is the part a reader can actually check.
+  -->
+  <div class="wrap legal">
+    <p>
+      rigseed bundles <a href="https://www.qbittorrent.org/">qbittorrent-nox</a>, which is licensed
+      under the GPL. Every release carries the source code that built the exact copy inside that
+      download, so you can rebuild it yourself and get the same thing. It sits on the release page
+      next to the installer, because a link to someone else's source would not be the same code.
+    </p>
+    <p class="small">
+      &copy; {year} Verastack Labs. rigseed is not affiliated with the qBittorrent project.
+    </p>
+  </div>
+</footer>
+
+<style>
+  footer {
+    border-top: 1px solid var(--line);
+    background: var(--sidebar-bg);
+    padding-block: clamp(2.5rem, 6vw, 4rem) 2rem;
+    margin-top: clamp(3rem, 8vw, 6rem);
+  }
+
+  .inner {
+    display: grid;
+    gap: 2.5rem;
+  }
+
+  @media (min-width: 48rem) {
+    .inner {
+      grid-template-columns: 1fr 1.6fr;
+      align-items: start;
+    }
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .brand-name {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .tag {
+    margin-top: 0.625rem;
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    max-width: 30ch;
+  }
+
+  nav {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .eyebrow {
+    margin: 0 0 0.25rem;
+    font-weight: 400;
+  }
+
+  .col a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.875rem;
+  }
+
+  .col a:hover {
+    color: var(--text);
+  }
+
+  .legal {
+    margin-top: clamp(2.5rem, 5vw, 3.5rem);
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .legal p {
+    color: var(--text-dim);
+    font-size: 0.8125rem;
+    max-width: 70ch;
+  }
+
+  .small {
+    margin-top: 0.75rem;
+    color: var(--text-dimmer);
+  }
+</style>

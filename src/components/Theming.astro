@@ -1,0 +1,319 @@
+---
+// The accents, copied from the canonical table so keys and labels match the
+// app exactly. Each swatch sets its own data-accent, so the dot inside it
+// resolves --accent from tokens.css rather than repeating a hex here. The
+// colours cannot drift from the app because they are never written twice.
+const accents = [
+  { key: 'dustblue', label: 'Dusty Blue' },
+  { key: 'amber', label: 'Amber' },
+  { key: 'sage', label: 'Sage' },
+  { key: 'terracotta', label: 'Terracotta' },
+  { key: 'mustard', label: 'Mustard' },
+  { key: 'slateteal', label: 'Slate Teal' },
+  { key: 'lavender', label: 'Lavender' },
+  { key: 'slate', label: 'Slate' },
+]
+---
+
+<section id="theming" class="wrap">
+  <p class="eyebrow">Theming</p>
+  <h2>The accent is a reskin, not a highlight.</h2>
+  <p class="lede">
+    Picking one does not recolour a few buttons. Every neutral surface is a mix of its base tone and
+    the accent, so the page you are reading retints with it. This page runs the same tokens as the
+    app, so this is the mechanism itself rather than a picture of it.
+  </p>
+
+  <div class="panel">
+    <div class="controls">
+      <div class="group" role="group" aria-label="Accent">
+        {
+          accents.map((a) => (
+            <button class="swatch" data-accent-set={a.key} data-accent={a.key} aria-label={a.label}>
+              <span class="dot" />
+            </button>
+          ))
+        }
+      </div>
+
+      <div class="group modes" role="group" aria-label="Mode">
+        <button class="mode" data-mode-set="dark">Dark</button>
+        <button class="mode" data-mode-set="light">Light</button>
+      </div>
+    </div>
+
+    <div class="demo">
+      <div class="card">
+        <span class="name">ubuntu-24.04.2-desktop-amd64.iso</span>
+        <div class="state"><span class="dot-sm"></span> downloading</div>
+        <div class="bar"><span style="width: 72%"></span></div>
+        <div class="figures mono">
+          <span class="down">4.6 MB/s</span>
+          <span class="up">137.6 KB/s</span>
+          <span class="pct">72.0%</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="name">debian-12.9.0-amd64-netinst.iso</span>
+        <div class="state"><span class="dot-sm up-dot"></span> seeding</div>
+        <div class="bar"><span class="full" style="width: 100%"></span></div>
+        <div class="figures mono">
+          <span class="down">0 B/s</span>
+          <span class="up">1.4 MB/s</span>
+          <span class="pct">100%</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="name dim-name">archlinux-2026.08.01-x86_64.iso</span>
+        <div class="state dim"><span class="dot-sm dim-dot"></span> paused</div>
+        <div class="bar"><span class="dim-bar" style="width: 89%"></span></div>
+        <div class="figures mono dim">
+          <span>0 B/s</span>
+          <span>0 B/s</span>
+          <span class="pct">89.2%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // No React here on purpose. A theme change is one attribute write, and
+  // hydrating a component to perform a dataset assignment would cost more than
+  // the assignment does.
+  const root = document.documentElement
+
+  const store = (key: string, value: string) => {
+    try {
+      localStorage.setItem('rigseed:' + key, value)
+    } catch {
+      // Storage blocked. The choice still applies for this visit, which is the
+      // part that matters. Only remembering it is lost.
+    }
+  }
+
+  const sync = () => {
+    document.querySelectorAll<HTMLElement>('[data-accent-set]').forEach((el) => {
+      el.setAttribute('aria-pressed', String(el.dataset.accentSet === root.dataset.accent))
+    })
+    document.querySelectorAll<HTMLElement>('[data-mode-set]').forEach((el) => {
+      el.setAttribute('aria-pressed', String(el.dataset.modeSet === root.dataset.mode))
+    })
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-accent-set]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const next = el.dataset.accentSet
+      if (!next) return
+      root.dataset.accent = next
+      store('accent', next)
+      sync()
+    })
+  })
+
+  document.querySelectorAll<HTMLElement>('[data-mode-set]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const next = el.dataset.modeSet
+      if (!next) return
+      root.dataset.mode = next
+      store('mode', next)
+      sync()
+    })
+  })
+
+  sync()
+</script>
+
+<style>
+  h2 {
+    max-width: 20ch;
+  }
+
+  .lede {
+    margin-top: 1rem;
+    max-width: 54ch;
+  }
+
+  .panel {
+    margin-top: clamp(2rem, 5vw, 3rem);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    background: var(--surface);
+    padding: clamp(1.25rem, 3vw, 2rem);
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .swatch {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: none;
+    cursor: pointer;
+    transition:
+      border-color var(--t-fast) ease,
+      transform var(--t-fast) var(--spring);
+  }
+
+  .swatch:hover {
+    transform: scale(1.1);
+  }
+
+  .swatch[aria-pressed='true'] {
+    border-color: var(--text-dim);
+  }
+
+  .dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--accent);
+    display: block;
+  }
+
+  .modes {
+    border: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .mode {
+    border: 0;
+    background: none;
+    color: var(--text-dim);
+    font: inherit;
+    font-size: 0.875rem;
+    padding: 0.3rem 0.85rem;
+    border-radius: 7px;
+    cursor: pointer;
+    transition:
+      background-color var(--t-fast) ease,
+      color var(--t-fast) ease;
+  }
+
+  .mode[aria-pressed='true'] {
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  .demo {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  }
+
+  .card {
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    background: var(--surface2);
+    padding: 0.875rem 1rem 1rem;
+  }
+
+  .name {
+    color: var(--accent);
+    font-size: 0.875rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+  }
+
+  /* Paused is never accent. Attention is a scarce resource spent on live
+     things, so a paused row gives its colour back. */
+  .dim-name {
+    color: var(--text-dim);
+  }
+
+  .state {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+    font-size: 0.8125rem;
+    color: var(--text-dim);
+  }
+
+  .dot-sm {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+
+  .up-dot {
+    background: var(--accent2);
+  }
+
+  .dim-dot {
+    background: var(--text-dimmer);
+  }
+
+  .bar {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--surface);
+    margin-top: 0.7rem;
+    overflow: hidden;
+  }
+
+  .bar span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 999px;
+  }
+
+  .bar .full {
+    background: var(--accent2);
+  }
+
+  .bar .dim-bar {
+    background: var(--text-dimmer);
+  }
+
+  .figures {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.7rem;
+    font-size: 0.75rem;
+  }
+
+  .down {
+    color: var(--accent);
+  }
+
+  .up {
+    color: var(--accent2);
+  }
+
+  .pct {
+    margin-left: auto;
+    color: var(--text-dim);
+  }
+
+  .dim,
+  .dim span {
+    color: var(--text-dimmer);
+  }
+</style>

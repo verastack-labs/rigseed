@@ -1,0 +1,67 @@
+---
+interface Props {
+  version: string
+  releaseUrl: string
+}
+
+const { version, releaseUrl } = Astro.props
+const site = Astro.site?.toString().replace(/\/$/, '') ?? ''
+const base = `${site}${import.meta.env.BASE_URL}`.replace(/\/$/, '')
+
+/*
+ * Deliberately without aggregateRating or review.
+ *
+ * Google's SoftwareApplication documentation lists a rating or a review among
+ * the required properties, so this markup will not produce a rich result
+ * without one. rigseed has no ratings and no reviews: the product brief says
+ * so in as many words, under Evidence on Hand.
+ *
+ * Inventing one would be a lie on the page, and separately it breaks Google's
+ * rule that structured data must represent content actually visible to the
+ * reader, which is the kind of thing that earns a manual action rather than a
+ * ranking. So the markup stays accurate and forfeits the rich result. It is
+ * still worth emitting: it is what a search engine or an assistant reads to
+ * learn what this page is, and it costs a few hundred bytes.
+ *
+ * Worth calibrating the expectation too. Structured data is not a ranking
+ * factor. It gates eligibility for rich results, and Google has been retiring
+ * those rather than adding them.
+ */
+const application = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'rigseed',
+  applicationCategory: 'UtilitiesApplication',
+  applicationSubCategory: 'BitTorrent client',
+  operatingSystem: 'Windows 10, Windows 11, macOS 12 (Apple Silicon), Linux',
+  softwareVersion: version,
+  url: base,
+  downloadUrl: releaseUrl,
+  softwareRequirements: 'qBittorrent is bundled. No separate install is required.',
+  description:
+    'A desktop client for qBittorrent. It drives the daemon over the Web API it already exposes, adding a first-run setup and a theming layer where the accent tints every surface.',
+  license: 'https://www.apache.org/licenses/LICENSE-2.0',
+  isAccessibleForFree: true,
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+  },
+  author: {
+    '@type': 'Organization',
+    name: 'Verastack Labs',
+    url: 'https://github.com/verastack-labs',
+  },
+}
+
+const organisation = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Verastack Labs',
+  url: 'https://github.com/verastack-labs',
+  email: 'verastack.labs@gmail.com',
+}
+---
+
+<script is:inline type="application/ld+json" set:html={JSON.stringify(application)} />
+<script is:inline type="application/ld+json" set:html={JSON.stringify(organisation)} />

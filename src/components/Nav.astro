@@ -1,0 +1,259 @@
+---
+import Mark from './Mark.astro'
+
+const base = import.meta.env.BASE_URL
+
+// Only in-page links take part in scroll spy. Source leaves the site, so it
+// can never be the active section and must not be a target the indicator can
+// slide to.
+const sections = [
+  { id: 'screens', label: 'Screens' },
+  { id: 'theming', label: 'Theming' },
+  { id: 'download', label: 'Download' },
+]
+---
+
+<header class="nav" data-nav>
+  <div class="wrap bar">
+    <a class="brand" href={base}>
+      <Mark size={22} />
+      <span class="brand-name">rigseed</span>
+    </a>
+
+    <nav class="links" aria-label="Primary" data-links>
+      {
+        /*
+        The indicator slides between links the way the app's View control
+        slides between Easy, Grid and List. Borrowed from the product rather
+        than from a trend, so the site and the app read as one thing.
+      */
+      }
+      <span class="indicator" data-indicator aria-hidden="true"></span>
+      {
+        sections.map((s) => (
+          <a href={`#${s.id}`} data-spy={s.id}>
+            {s.label}
+          </a>
+        ))
+      }
+      <a class="external" href="https://github.com/verastack-labs/rigseed-app">Source</a>
+    </nav>
+  </div>
+
+  {
+    /*
+    Scroll position as a progress bar, in the accent, the same shape the app
+    draws for a downloading torrent. It is the honest version of the
+    scroll-as-navigation idea: it says how far through you are and nothing else.
+  */
+  }
+  <div class="progress" aria-hidden="true"><span data-progress></span></div>
+</header>
+
+<script>
+  const nav = document.querySelector<HTMLElement>('[data-nav]')
+  const links = document.querySelector<HTMLElement>('[data-links]')
+  const indicator = document.querySelector<HTMLElement>('[data-indicator]')
+  const progress = document.querySelector<HTMLElement>('[data-progress]')
+
+  if (nav && links && indicator && progress) {
+    // The bar never hides. It carries a progress line and a section
+    // indicator, and both are only worth drawing if they are on screen; a
+    // progress bar you have to scroll up to consult is decoration.
+    //
+    // Low, so the surface arrives as soon as content starts passing under the
+    // bar rather than after a deliberate scroll.
+    const FLOOR = 24
+
+    const spies = Array.from(links.querySelectorAll<HTMLAnchorElement>('[data-spy]'))
+    let ticking = false
+    let active: HTMLAnchorElement | null = null
+
+    const moveIndicator = (to: HTMLAnchorElement | null) => {
+      if (to === active) return
+      active = to
+      spies.forEach((a) => a.classList.toggle('is-active', a === to))
+      if (!to) {
+        indicator.style.opacity = '0'
+        return
+      }
+      // Measured from the element rather than assumed from an index, so the
+      // indicator stays correct when the labels change width or the font loads
+      // late and reflows them.
+      indicator.style.opacity = '1'
+      indicator.style.transform = `translateX(${to.offsetLeft}px)`
+      indicator.style.width = `${to.offsetWidth}px`
+    }
+
+    // Which section owns the viewport. The one whose top is nearest above the
+    // reading line wins, which behaves correctly for sections shorter than the
+    // viewport where an intersection ratio would flicker between two.
+    const currentSection = () => {
+      const line = window.scrollY + window.innerHeight * 0.35
+      let found: HTMLAnchorElement | null = null
+      for (const a of spies) {
+        const id = a.dataset.spy
+        const el = id ? document.getElementById(id) : null
+        if (el && el.offsetTop <= line) found = a
+      }
+      return found
+    }
+
+    const update = () => {
+      const y = window.scrollY
+      const max = document.documentElement.scrollHeight - window.innerHeight
+
+      nav.classList.toggle('is-stuck', y > FLOOR)
+
+      // Guard the divide: a page shorter than the viewport has max 0, and
+      // 0/0 is NaN, which silently leaves the bar at whatever it last was.
+      progress.style.transform = `scaleX(${max > 0 ? Math.min(y / max, 1) : 0})`
+
+      moveIndicator(currentSection())
+
+      ticking = false
+    }
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (ticking) return
+        ticking = true
+        requestAnimationFrame(update)
+      },
+      { passive: true },
+    )
+
+    // Labels can change width when the webfont swaps in, which would leave the
+    // indicator sized for the fallback.
+    window.addEventListener('resize', () => {
+      const held = active
+      active = null
+      moveIndicator(held)
+    })
+
+    update()
+  }
+</script>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    transition:
+      background-color var(--t-base) ease,
+      border-color var(--t-base) ease;
+    border-bottom: 1px solid transparent;
+  }
+
+  .is-stuck {
+    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    border-bottom-color: var(--line);
+    backdrop-filter: blur(10px);
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.875rem;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .brand-name {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+
+  .links {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.9375rem;
+  }
+
+  .links a {
+    position: relative;
+    z-index: 1;
+    padding: 0.35rem 0.7rem;
+    border-radius: var(--r-nav);
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color var(--t-fast) ease;
+  }
+
+  .links a:hover,
+  .links a.is-active {
+    color: var(--text);
+  }
+
+  .external {
+    margin-left: 0.5rem;
+  }
+
+  /* The segmented-control indicator. Spring on travel, plain ease on opacity,
+     which is the same split the app uses. */
+  .indicator {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    height: 1.85rem;
+    translate: 0 -50%;
+    border-radius: var(--r-nav);
+    background: var(--surface2);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform var(--t-base) var(--spring),
+      width var(--t-base) var(--spring),
+      opacity var(--t-fast) ease;
+  }
+
+  .progress {
+    position: absolute;
+    inset: auto 0 -1px;
+    height: 2px;
+    overflow: hidden;
+  }
+
+  .progress span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+  }
+
+  /*
+   * Under reduced motion nothing slides. The indicator still moves and the
+   * progress line still fills, because both carry information, but they change
+   * state rather than animate between them.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .nav,
+    .indicator {
+      transition: none;
+    }
+  }
+
+  @media (max-width: 46rem) {
+    /* The indicator has nothing to slide between once the in-page links are
+       gone, so it goes with them rather than sitting under a lone link. */
+    .links a[data-spy],
+    .indicator {
+      display: none;
+    }
+  }
+</style>
