@@ -67,8 +67,15 @@ page and break the rule that structured data must represent visible content.
 
 Apache License 2.0 - see `LICENSE`.
 
-The app bundles `qbittorrent-nox`, which is GPL licensed. The corresponding source for the
-exact build that ships is attached to every release in the app repository.
+The app bundles `qbittorrent-nox`, which is GPL licensed. Every release carries the source that
+built the exact binary inside it, attached to the release page beside the installer.
+
+That is a specific requirement rather than a courtesy. GPLv3 section 6 asks for the
+_corresponding_ source, meaning the version, patches and build flags that produced that
+particular file, offered from the same place as the binary. A link to upstream does not satisfy
+it: upstream's current source is not what our binary was built from, since the version is pinned
+to a commit and compiled with our own flags. The release workflow refuses to publish without the
+archive for this reason.
 
 ## Contact
 
