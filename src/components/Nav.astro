@@ -2,6 +2,15 @@
 import Mark from './Mark.astro'
 
 const base = import.meta.env.BASE_URL
+
+// Only in-page links take part in scroll spy. Source leaves the site, so it
+// can never be the active section and must not be a target the indicator can
+// slide to.
+const sections = [
+  { id: 'screens', label: 'Screens' },
+  { id: 'theming', label: 'Theming' },
+  { id: 'download', label: 'Download' },
+]
 ---
 
 <header class="nav" data-nav>
@@ -10,45 +19,100 @@ const base = import.meta.env.BASE_URL
       <Mark size={22} />
       <span class="brand-name">rigseed</span>
     </a>
-    <nav class="links" aria-label="Primary">
-      <a href="#screens">Screens</a>
-      <a href="#theming">Theming</a>
-      <a href="#download">Download</a>
-      <a href="https://github.com/verastack-labs/rigseed-app">Source</a>
+
+    <nav class="links" aria-label="Primary" data-links>
+      {
+        /*
+        The indicator slides between links the way the app's View control
+        slides between Easy, Grid and List. Borrowed from the product rather
+        than from a trend, so the site and the app read as one thing.
+      */
+      }
+      <span class="indicator" data-indicator aria-hidden="true"></span>
+      {
+        sections.map((s) => (
+          <a href={`#${s.id}`} data-spy={s.id}>
+            {s.label}
+          </a>
+        ))
+      }
+      <a class="external" href="https://github.com/verastack-labs/rigseed-app">Source</a>
     </nav>
   </div>
+
+  {
+    /*
+    Scroll position as a progress bar, in the accent, the same shape the app
+    draws for a downloading torrent. It is the honest version of the
+    scroll-as-navigation idea: it says how far through you are and nothing else.
+  */
+  }
+  <div class="progress" aria-hidden="true"><span data-progress></span></div>
 </header>
 
 <script>
   const nav = document.querySelector<HTMLElement>('[data-nav]')
-  if (nav) {
-    // Below this the bar always shows. Hiding it while someone is still near
-    // the top reads as a glitch rather than as getting out of the way.
+  const links = document.querySelector<HTMLElement>('[data-links]')
+  const indicator = document.querySelector<HTMLElement>('[data-indicator]')
+  const progress = document.querySelector<HTMLElement>('[data-progress]')
+
+  if (nav && links && indicator && progress) {
     const FLOOR = 120
-    // Ignore travel smaller than this. Without it a trackpad's own jitter
-    // flips the bar back and forth while the reader is holding still.
     const THRESHOLD = 6
 
+    const spies = Array.from(links.querySelectorAll<HTMLAnchorElement>('[data-spy]'))
     let last = window.scrollY
     let ticking = false
+    let active: HTMLAnchorElement | null = null
+
+    const moveIndicator = (to: HTMLAnchorElement | null) => {
+      if (to === active) return
+      active = to
+      spies.forEach((a) => a.classList.toggle('is-active', a === to))
+      if (!to) {
+        indicator.style.opacity = '0'
+        return
+      }
+      // Measured from the element rather than assumed from an index, so the
+      // indicator stays correct when the labels change width or the font loads
+      // late and reflows them.
+      indicator.style.opacity = '1'
+      indicator.style.transform = `translateX(${to.offsetLeft}px)`
+      indicator.style.width = `${to.offsetWidth}px`
+    }
+
+    // Which section owns the viewport. The one whose top is nearest above the
+    // reading line wins, which behaves correctly for sections shorter than the
+    // viewport where an intersection ratio would flicker between two.
+    const currentSection = () => {
+      const line = window.scrollY + window.innerHeight * 0.35
+      let found: HTMLAnchorElement | null = null
+      for (const a of spies) {
+        const id = a.dataset.spy
+        const el = id ? document.getElementById(id) : null
+        if (el && el.offsetTop <= line) found = a
+      }
+      return found
+    }
 
     const update = () => {
       const y = window.scrollY
       const delta = y - last
+      const max = document.documentElement.scrollHeight - window.innerHeight
 
-      // The solid background only appears once the page has moved. At the top
-      // the bar sits on the hero and a second surface behind it would draw a
-      // line across the design for no reason.
       nav.classList.toggle('is-stuck', y > FLOOR)
 
       if (y <= FLOOR) {
         nav.classList.remove('is-hidden')
       } else if (Math.abs(delta) > THRESHOLD) {
-        // Down hides, up reveals. Reading is the common case and wants the
-        // room; reaching for navigation is the deliberate one and wants it back
-        // without scrolling all the way up.
         nav.classList.toggle('is-hidden', delta > 0)
       }
+
+      // Guard the divide: a page shorter than the viewport has max 0, and
+      // 0/0 is NaN, which silently leaves the bar at whatever it last was.
+      progress.style.transform = `scaleX(${max > 0 ? Math.min(y / max, 1) : 0})`
+
+      moveIndicator(currentSection())
 
       last = y
       ticking = false
@@ -64,8 +128,16 @@ const base = import.meta.env.BASE_URL
       { passive: true },
     )
 
-    // A jump to #download must not leave the bar hidden over the thing it
-    // just moved to, and keyboard focus must never land on an offscreen link.
+    // Labels can change width when the webfont swaps in, which would leave the
+    // indicator sized for the fallback.
+    window.addEventListener('resize', () => {
+      const held = active
+      active = null
+      moveIndicator(held)
+    })
+
+    // Keyboard focus must never land on an offscreen link, and a jump to a
+    // section must not leave the bar covering what it moved to.
     nav.addEventListener('focusin', () => nav.classList.remove('is-hidden'))
     window.addEventListener('hashchange', () => nav.classList.remove('is-hidden'))
 
@@ -95,17 +167,6 @@ const base = import.meta.env.BASE_URL
     transform: translateY(-100%);
   }
 
-  /*
-   * Springs become instant state changes rather than slower springs, which is
-   * the rule the app follows. A bar that slides away is motion the reader did
-   * not ask for, so under reduced motion it simply is not there or is.
-   */
-  @media (prefers-reduced-motion: reduce) {
-    .nav {
-      transition: none;
-    }
-  }
-
   .bar {
     display: flex;
     align-items: center;
@@ -130,23 +191,82 @@ const base = import.meta.env.BASE_URL
   }
 
   .links {
+    position: relative;
     display: flex;
-    gap: 1.5rem;
+    align-items: center;
+    gap: 0.25rem;
     font-size: 0.9375rem;
   }
 
   .links a {
+    position: relative;
+    z-index: 1;
+    padding: 0.35rem 0.7rem;
+    border-radius: var(--r-nav);
     color: var(--text-dim);
     text-decoration: none;
     transition: color var(--t-fast) ease;
   }
 
-  .links a:hover {
+  .links a:hover,
+  .links a.is-active {
     color: var(--text);
   }
 
-  @media (max-width: 40rem) {
-    .links a:not(:last-child) {
+  .external {
+    margin-left: 0.5rem;
+  }
+
+  /* The segmented-control indicator. Spring on travel, plain ease on opacity,
+     which is the same split the app uses. */
+  .indicator {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    height: 1.85rem;
+    translate: 0 -50%;
+    border-radius: var(--r-nav);
+    background: var(--surface2);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform var(--t-base) var(--spring),
+      width var(--t-base) var(--spring),
+      opacity var(--t-fast) ease;
+  }
+
+  .progress {
+    position: absolute;
+    inset: auto 0 -1px;
+    height: 2px;
+    overflow: hidden;
+  }
+
+  .progress span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+  }
+
+  /*
+   * Under reduced motion nothing slides. The indicator still moves and the
+   * progress line still fills, because both carry information, but they change
+   * state rather than animate between them.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .nav,
+    .indicator {
+      transition: none;
+    }
+  }
+
+  @media (max-width: 46rem) {
+    /* The indicator has nothing to slide between once the in-page links are
+       gone, so it goes with them rather than sitting under a lone link. */
+    .links a[data-spy],
+    .indicator {
       display: none;
     }
   }
