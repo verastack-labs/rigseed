@@ -1,0 +1,10 @@
+# esbuild ships a prebuilt platform binary placed by its install script, and
+# pnpm 11 blocks package install scripts unless they are allowed here. It is
+# not a warning: strictDepBuilds defaults to true in 11, so a cold install
+# exits non-zero, and `astro build` runs a dependency check first, so the
+# build fails before Astro is ever reached.
+#
+# The key is `allowBuilds`, a map. pnpm 11 removed `onlyBuiltDependencies`,
+# and it does not read the "pnpm" field in package.json at all any more.
+allowBuilds:
+  esbuild: true

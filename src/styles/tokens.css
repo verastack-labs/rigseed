@@ -1,0 +1,189 @@
+/*
+ * Ported from rigseed's canonical design foundations, not re-derived. Values
+ * that differ from the app are a bug, so the numbers here are copied rather
+ * than eyeballed from a screenshot.
+ *
+ * Two stages, exactly as the app does it. A mode-dependent base palette with
+ * per-mode tint strengths, then the chosen accent mixed into every base tone.
+ * Mode and accent are attributes on a wrapper, never values computed in JS, so
+ * a theme change is one attribute write.
+ */
+
+:root {
+  /* Dark is the default, matching the app's own default. */
+  --base-bg: #191a1c;
+  --base-sidebar: #141517;
+  --base-surface: #212327;
+  --base-surface2: #2a2c31;
+  --border: #34373c;
+  --text: #e9e8e6;
+  --text-dim: #979a9f;
+  --text-dimmer: #6a6d73;
+  --accent-on: #14181c;
+  --shadow-color: rgb(0 0 0 / 0.5);
+
+  --tint-bg: 7%;
+  --tint-sidebar: 9%;
+  --tint-surface: 8%;
+  --tint-surface2: 10%;
+  --tint-border: 14%;
+
+  /* Status colours are fixed per mode and never follow the accent. Several
+     accents pair with a terracotta secondary, which would be
+     indistinguishable from --danger. */
+  --ok: #7fa87f;
+  --warn: #c79a3e;
+  --danger: #c0563c;
+
+  /* dustblue, the app's default accent. */
+  --accent: #7fa2bc;
+  --accent2: #c97b63;
+}
+
+[data-mode='light'] {
+  --base-bg: #f6f6f5;
+  --base-sidebar: #efefee;
+  --base-surface: #ffffff;
+  --base-surface2: #f9f9f8;
+  --border: #e0e0de;
+  --text: #232527;
+  --text-dim: #7e8288;
+  --text-dimmer: #a9adb2;
+  --accent-on: #ffffff;
+  --shadow-color: rgb(40 50 60 / 0.14);
+
+  --tint-bg: 9%;
+  --tint-sidebar: 12%;
+  --tint-surface: 4%;
+  --tint-surface2: 8%;
+  --tint-border: 22%;
+
+  --ok: #4c7a4c;
+  --warn: #9a7420;
+  --danger: #b04a31;
+
+  --accent: #43718f;
+  --accent2: #9f553f;
+}
+
+/* The eight accents. Each carries a dark value, a light value and a paired
+   secondary. --accent carries download, progress, primary action and links;
+   --accent2 carries upload and seeding. */
+[data-accent='dustblue'] {
+  --accent: #7fa2bc;
+  --accent2: #c97b63;
+}
+[data-accent='amber'] {
+  --accent: #e2ac66;
+  --accent2: #93b393;
+}
+[data-accent='sage'] {
+  --accent: #8fb08f;
+  --accent2: #e0a458;
+}
+[data-accent='terracotta'] {
+  --accent: #c97b63;
+  --accent2: #7c9cb4;
+}
+[data-accent='mustard'] {
+  --accent: #d4b15e;
+  --accent2: #6fa3a0;
+}
+[data-accent='slateteal'] {
+  --accent: #6fa3a0;
+  --accent2: #d4b15e;
+}
+[data-accent='lavender'] {
+  --accent: #a69bc9;
+  --accent2: #b08f6a;
+}
+[data-accent='slate'] {
+  --accent: #98a0ac;
+  --accent2: #c0a176;
+}
+
+[data-mode='light'][data-accent='dustblue'] {
+  --accent: #43718f;
+  --accent2: #9f553f;
+}
+[data-mode='light'][data-accent='amber'] {
+  --accent: #b0731f;
+  --accent2: #487448;
+}
+[data-mode='light'][data-accent='sage'] {
+  --accent: #4c7a4c;
+  --accent2: #925d25;
+}
+[data-mode='light'][data-accent='terracotta'] {
+  --accent: #a85a42;
+  --accent2: #496d87;
+}
+[data-mode='light'][data-accent='mustard'] {
+  --accent: #93761f;
+  --accent2: #3b736f;
+}
+[data-mode='light'][data-accent='slateteal'] {
+  --accent: #35726e;
+  --accent2: #7e6625;
+}
+[data-mode='light'][data-accent='lavender'] {
+  --accent: #7367a5;
+  --accent2: #82643e;
+}
+[data-mode='light'][data-accent='slate'] {
+  --accent: #5a626e;
+  --accent2: #856239;
+}
+
+/* The Tinted Neutral Rule. No neutral is a raw hex: every surface is a mix of
+   its base tone and the live accent at that mode's tint strength. This is what
+   makes picking an accent a reskin rather than a highlight. */
+:root,
+[data-mode] {
+  --bg: color-mix(in srgb, var(--accent) var(--tint-bg), var(--base-bg));
+  --sidebar-bg: color-mix(in srgb, var(--accent) var(--tint-sidebar), var(--base-sidebar));
+  --surface: color-mix(in srgb, var(--accent) var(--tint-surface), var(--base-surface));
+  --surface2: color-mix(in srgb, var(--accent) var(--tint-surface2), var(--base-surface2));
+  --line: color-mix(in srgb, var(--accent) var(--tint-border), var(--border));
+
+  --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
+  --accent2-soft: color-mix(in srgb, var(--accent2) 18%, transparent);
+  --warn-soft: color-mix(in srgb, var(--warn) 14%, transparent);
+  --danger-soft: color-mix(in srgb, var(--danger) 14%, transparent);
+}
+
+/* Shape. Controls 7-8px, nav items 9px, cards and panels 11-12px, modals 14px,
+   chips a full pill. Borders are always 1px solid var(--line), four-sided. */
+:root {
+  --r-control: 8px;
+  --r-nav: 9px;
+  --r-card: 12px;
+  --r-modal: 14px;
+  --r-pill: 20px;
+
+  /* Motion. Spring overshoot for anything that expands or slides; plain eases
+     for colour and opacity. Nothing linear except spinners. */
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-wide: cubic-bezier(0.34, 1.2, 0.64, 1);
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --t-fast: 0.16s;
+  --t-base: 0.24s;
+  --t-slow: 0.35s;
+
+  /* Elevation is the four-step background ramp plus 1px borders. Shadow is
+     reserved for things that genuinely float; in-flow cards never cast one. */
+  --shadow-card: 0 8px 24px var(--shadow-color);
+  --shadow-modal: 0 24px 60px var(--shadow-color);
+}
+
+/* Springs become instant state changes rather than slower springs. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --spring: step-end;
+    --spring-wide: step-end;
+    --ease: step-end;
+    --t-fast: 0.01ms;
+    --t-base: 0.01ms;
+    --t-slow: 0.01ms;
+  }
+}
