@@ -58,7 +58,13 @@ jobs:
           fi
           echo "asset paths are correctly based"
 
+      # enablement lets the action create the Pages site if it does not exist.
+      # Without it the first deploy of a repository fails with "Get Pages site
+      # failed" and the fix is a settings change nobody has written down, which
+      # is exactly how this one failed the first time.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
