@@ -1,0 +1,153 @@
+---
+import Mark from './Mark.astro'
+
+const base = import.meta.env.BASE_URL
+---
+
+<header class="nav" data-nav>
+  <div class="wrap bar">
+    <a class="brand" href={base}>
+      <Mark size={22} />
+      <span class="brand-name">rigseed</span>
+    </a>
+    <nav class="links" aria-label="Primary">
+      <a href="#screens">Screens</a>
+      <a href="#theming">Theming</a>
+      <a href="#download">Download</a>
+      <a href="https://github.com/verastack-labs/rigseed-app">Source</a>
+    </nav>
+  </div>
+</header>
+
+<script>
+  const nav = document.querySelector<HTMLElement>('[data-nav]')
+  if (nav) {
+    // Below this the bar always shows. Hiding it while someone is still near
+    // the top reads as a glitch rather than as getting out of the way.
+    const FLOOR = 120
+    // Ignore travel smaller than this. Without it a trackpad's own jitter
+    // flips the bar back and forth while the reader is holding still.
+    const THRESHOLD = 6
+
+    let last = window.scrollY
+    let ticking = false
+
+    const update = () => {
+      const y = window.scrollY
+      const delta = y - last
+
+      // The solid background only appears once the page has moved. At the top
+      // the bar sits on the hero and a second surface behind it would draw a
+      // line across the design for no reason.
+      nav.classList.toggle('is-stuck', y > FLOOR)
+
+      if (y <= FLOOR) {
+        nav.classList.remove('is-hidden')
+      } else if (Math.abs(delta) > THRESHOLD) {
+        // Down hides, up reveals. Reading is the common case and wants the
+        // room; reaching for navigation is the deliberate one and wants it back
+        // without scrolling all the way up.
+        nav.classList.toggle('is-hidden', delta > 0)
+      }
+
+      last = y
+      ticking = false
+    }
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (ticking) return
+        ticking = true
+        requestAnimationFrame(update)
+      },
+      { passive: true },
+    )
+
+    // A jump to #download must not leave the bar hidden over the thing it
+    // just moved to, and keyboard focus must never land on an offscreen link.
+    nav.addEventListener('focusin', () => nav.classList.remove('is-hidden'))
+    window.addEventListener('hashchange', () => nav.classList.remove('is-hidden'))
+
+    update()
+  }
+</script>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    transition:
+      transform var(--t-base) var(--ease),
+      background-color var(--t-base) ease,
+      border-color var(--t-base) ease;
+    border-bottom: 1px solid transparent;
+  }
+
+  .is-stuck {
+    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    border-bottom-color: var(--line);
+    backdrop-filter: blur(10px);
+  }
+
+  .is-hidden {
+    transform: translateY(-100%);
+  }
+
+  /*
+   * Springs become instant state changes rather than slower springs, which is
+   * the rule the app follows. A bar that slides away is motion the reader did
+   * not ask for, so under reduced motion it simply is not there or is.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .nav {
+      transition: none;
+    }
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.875rem;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .brand-name {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+
+  .links {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.9375rem;
+  }
+
+  .links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color var(--t-fast) ease;
+  }
+
+  .links a:hover {
+    color: var(--text);
+  }
+
+  @media (max-width: 40rem) {
+    .links a:not(:last-child) {
+      display: none;
+    }
+  }
+</style>
