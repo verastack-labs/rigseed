@@ -8,3 +8,6 @@
 # and it does not read the "pnpm" field in package.json at all any more.
 allowBuilds:
   esbuild: true
+  # sharp is astro:assets' image backend and ships a platform binary
+  # the same way.
+  sharp: true
