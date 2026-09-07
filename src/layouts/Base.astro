@@ -15,6 +15,10 @@ interface Props {
 
 const { title, description, version, releaseUrl } = Astro.props
 const social = new URL('social.png', Astro.site + Astro.url.pathname).toString()
+
+// One canonical URL per page. Without it the same page is reachable with and
+// without a trailing slash and a crawler has to guess which is authoritative.
+const canonical = new URL(Astro.url.pathname, Astro.site).toString()
 ---
 
 <!doctype html>
@@ -29,10 +33,12 @@ const social = new URL('social.png', Astro.site + Astro.url.pathname).toString()
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
 
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
     <meta property="og:image" content={social} />
     <meta name="twitter:card" content="summary_large_image" />
 

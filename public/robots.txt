@@ -1,0 +1,5 @@
+# Everything here is public and there is nothing to keep out of an index.
+User-agent: *
+Allow: /
+
+Sitemap: https://verastack-labs.github.io/rigseed/sitemap-index.xml

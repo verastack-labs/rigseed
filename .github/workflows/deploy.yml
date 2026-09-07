@@ -1,0 +1,75 @@
+name: Deploy
+
+# Builds the site and publishes it to GitHub Pages. Pages serves this as a
+# project page, so everything lives under /rigseed and astro.config.mjs sets
+# `base` to match. A mismatch there 404s every asset in production while
+# working perfectly in dev, which is the failure this pairing exists to avoid.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - LICENSE
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and never cancel one in flight: a half-published
+# site is worse than a slightly stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm run format:check
+
+      - name: Build
+        run: pnpm run build
+
+      # The base path is the one thing that cannot be caught by looking at dev.
+      # If it regresses, every stylesheet and image 404s in production and the
+      # page still builds green, so it is asserted on the built output.
+      - name: Confirm the build is rooted at /rigseed
+        run: |
+          set -euo pipefail
+          if ! grep -q '"/rigseed/_astro/' dist/index.html; then
+            echo "::error::built asset paths are not under /rigseed, so Pages will 404 them"
+            grep -o '_astro/[^"]*' dist/index.html | head -3
+            exit 1
+          fi
+          echo "asset paths are correctly based"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
