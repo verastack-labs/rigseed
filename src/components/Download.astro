@@ -43,11 +43,12 @@ const platforms = [
     detail: 'x86-64, glibc 2.35 or newer',
     files: [
       { label: 'Debian package (.deb)', file: `rigseed_${version}_amd64.deb`, primary: true },
+      { label: 'AppImage', file: `rigseed_${version}_amd64.AppImage` },
       { label: 'RPM package', file: `rigseed-${version}-1.x86_64.rpm` },
     ],
     verify: `sha256sum rigseed_${version}_amd64.deb`,
     warning:
-      'Built against glibc 2.35, so Ubuntu 22.04 and Debian 12 and newer are covered. Older distributions will not start the daemon.',
+      'Built against glibc 2.35, so Ubuntu 22.04 and Debian 12 and newer are covered. Older distributions will not start the daemon. The AppImage runs without installing, once you mark it executable.',
   },
 ]
 ---
