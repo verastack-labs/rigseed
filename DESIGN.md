@@ -68,8 +68,9 @@ rules out anything keyed to a specific colour relationship.
 **Monospace means data** is inherited from the app and kept. A number, a path or a filename
 not set in mono is a bug.
 
-**Yellowtail is reserved for the name.** It appears in the wordmark and where "rigseed"
-appears in the homepage headline, and nowhere else, ever. This is the single characterful
+**Yellowtail is reserved for the name.** It appears in the wordmark and wherever the word
+"rigseed" appears in running text, currently the second line of the hero. Nowhere else, ever,
+and the rule follows the name rather than the position. This is the single characterful
 gesture in the system and it stops working the moment it is spent on something else. The rule
 lives in `base.css` as `.name-script` rather than in any one component, because it is a rule
 about the whole site.
@@ -138,6 +139,12 @@ than as a set of separate documents. Two consequences, both easy to get wrong:
 
 The router copies the incoming document's `<html>` attributes over the live ones, including
 `data-mode` and `data-accent`, so the theme is reapplied on `astro:after-swap`.
+
+**Vendor prefixes go first, the standard property last.** The minifier treats a prefixed and
+unprefixed pair as one property and keeps the last declaration, so writing the standard
+property first means it is the one discarded. This shipped once: the nav pill went out with
+`-webkit-backdrop-filter` only and no blur at all. The dev server does not minify, so it looked
+correct locally every time. **Check the built stylesheet, not the source.**
 
 ## Honesty rules
 
