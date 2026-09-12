@@ -30,8 +30,8 @@ type Line = { kind: 'cmd' | 'out' | 'ok' | 'note'; text: string }
  *
  * Windows is shown uppercase because that is how Get-FileHash prints it.
  */
-const MAC_SHA = 'ac1e09c268581a46bae5739f6343a7a68cc52697da3c7ab877a703ae4ec0c7b6'
-const WIN_SHA = 'E7037EFF7E46E2A8B88A0B6A38E849C792E60ECB706A54432744D470BDE84AE7'
+const MAC_SHA = '3b29900327ecb730332da336325e959eba26957bcd6887b4676424debce0feed'
+const WIN_SHA = '4C404B66329BB292C8E35FD1116CADA674BDCFB5258964AAB597F8D69BBC49CE'
 
 const platforms: { key: string; label: string; lines: Line[] }[] = [
   {
