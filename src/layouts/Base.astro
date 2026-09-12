@@ -2,6 +2,10 @@
 import '@fontsource-variable/inter'
 import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
+// The one characterful face in the system, and it is spent entirely on the
+// wordmark. Everything else stays Inter and JetBrains Mono, which is what the
+// app uses; a second display face would make the site a different product.
+import '@fontsource/yellowtail'
 import '../styles/tokens.css'
 import '../styles/base.css'
 import StructuredData from '../components/StructuredData.astro'
@@ -67,6 +71,25 @@ const canonical = new URL(Astro.url.pathname, Astro.site).toString()
     <StructuredData version={version} releaseUrl={releaseUrl} />
   </head>
   <body>
+    <!--
+      DIRECTION CONTRACT
+
+      THESIS: a front end is only worth switching to if you can watch it work,
+      so the running transfer list is the first viewport at full width; this
+      page refuses the three-icon feature grid above the fold.
+      OWN-WORLD: Cozy Terminal tokens, warm low-contrast neutrals, one chosen
+      accent tinting every surface; hairline rules rather than cards, mono for
+      every number, Yellowtail script for the wordmark and nothing else.
+      STORY: this is qBittorrent's own engine behind a new interface, there is
+      nothing to install first, and the download is one click from here.
+      FIRST VIEWPORT: centred script wordmark over a hairline bar, an 18ch
+      headline, a 50ch lede, paired buttons with Download primary, then the
+      transfers surface at 62rem running off the bottom edge on an accent aura.
+      FORM: the category standard played straight at the Linear and Raycast
+      craft bar, taken as the standing exit over roll 33e09191 index 6.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with
+      the finish review, the verdict, and DESIGN.md
+    -->
     <slot />
   </body>
 </html>
