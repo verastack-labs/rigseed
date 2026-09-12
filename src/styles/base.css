@@ -230,7 +230,10 @@ section {
   line-height: 0.9;
   display: inline-block;
   transform: translateY(0.06em);
-  padding-right: 0.06em;
+  /* The script slants forward and its last letter leans into whatever follows,
+     so the gap a space gives is not enough on its own. Enough to separate the
+     word, not enough to read as a gap. */
+  padding-right: 0.16em;
 }
 
 /*
