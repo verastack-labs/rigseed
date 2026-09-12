@@ -121,6 +121,26 @@ Two things follow from persisting it, and both are easy to get wrong:
   They all set up on `astro:page-load` with listeners bound to an `AbortController` that is
   torn down first.
 
+## The social card
+
+`public/social.png`, 1200x630, what every pasted link renders as.
+
+It is built from `scratchpad/og/social.html` and captured in headless Chrome rather than
+drawn as an SVG, because the wordmark is Yellowtail and the body is Inter, and every SVG
+renderer to hand falls back to a system face instead. A social card in the wrong faces is
+worse than none: it is the site's first impression everywhere the link is shared.
+
+Two things that bit while making it, both worth knowing before regenerating it:
+
+- **`--window-size` sizes the window, not the page.** At `1200,630` the viewport came out
+  1182x534 and the footer, 56px off the bottom, fell outside the capture entirely. Set
+  `Emulation.setDeviceMetricsOverride` instead.
+- **`deviceScaleFactor` and the clip's `scale` multiply.** Both at 2 produced a 4800x2520
+  file. Render at `deviceScaleFactor: 2` with `scale: 1`, then downscale to 1200x630.
+
+The card repeats the dark palette as literals, because it renders standalone with no
+stylesheet behind it. It is the one place in the project that does.
+
 ## Structured data
 
 `SoftwareApplication` and `Organization`, deliberately **without** `aggregateRating`. Google
