@@ -234,11 +234,18 @@ const platforms = [
     margin: 0.5rem 0;
   }
 
+  /*
+   * A darker ground and nothing else.
+   *
+   * This carried a border and a radius as well, which makes a bordered box
+   * inside a bordered card: the card already says "separate object", and
+   * saying it twice flattens the hierarchy rather than deepening it. The
+   * recessed ground is enough to read as code.
+   */
   pre {
     margin: 0;
     padding: 0.625rem 0.75rem;
     background: var(--bg);
-    border: 1px solid var(--line);
     border-radius: var(--r-control);
     overflow-x: auto;
   }
@@ -248,8 +255,19 @@ const platforms = [
     font-size: 0.75rem;
   }
 
+  /*
+   * The measure stays; a rule spans the frame above it.
+   *
+   * Below the card row the page appeared to narrow: the cards run the full
+   * width and then everything after them is a 62ch column at the left edge
+   * with dead ground beside it. Widening the prose would fix the look and ruin
+   * the reading, so the structure is carried by a hairline at full width and
+   * the text keeps a measure somebody can actually read.
+   */
   .foot {
-    margin-top: 1.75rem;
+    margin-top: clamp(2rem, 4vw, 2.75rem);
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
     color: var(--text-dim);
     font-size: 0.875rem;
     max-width: 62ch;
