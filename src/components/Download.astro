@@ -55,7 +55,7 @@ const platforms = [
 
 <section id="download" class="wrap">
   <p class="eyebrow">Download</p>
-  <h2>rigseed {tag}</h2>
+  <h1>rigseed {tag}</h1>
   <p class="lede">
     qBittorrent is bundled, so there is nothing else to install. The first launch generates its own
     credentials and starts the daemon on a profile of its own, which never touches a qBittorrent you
@@ -118,8 +118,10 @@ const platforms = [
     max-width: 52ch;
   }
 
-  h2 {
-    font-family: 'Inter Variable', sans-serif;
+  /* The page's own title, so it takes h1 size from base.css but the
+     tighter measure a two-word heading wants. */
+  h1 {
+    max-width: 14ch;
   }
 
   .grid {

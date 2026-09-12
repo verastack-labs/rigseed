@@ -1,0 +1,28 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/Nav.astro'
+import Download from '../components/Download.astro'
+import Footer from '../components/Footer.astro'
+
+const version = '0.1.1'
+---
+
+<Base
+  title="Download rigseed"
+  description="Installers for rigseed on Windows, macOS and Linux, with the checksum for every file and what each platform will warn you about."
+  version={version}
+  releaseUrl="https://github.com/verastack-labs/rigseed-app/releases/latest"
+>
+  {
+    /*
+    A utility page, and it looks like one. No aura and no centred block: the
+    reader arrived to get a file and find out what their machine is going to
+    say about it. The world carries across in the hairlines, the mono for every
+    filename and the same accent, which is what makes this the same site rather
+    than the same template.
+  */
+  }
+  <Nav />
+  <Download version={version} />
+  <Footer />
+</Base>
