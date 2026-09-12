@@ -45,6 +45,14 @@ const version = '0.1.2'
 </Base>
 
 <style>
+  /* Same reasoning as the footnote above it: the reading measure stays and a
+     full-width rule carries the structure, so the page does not appear to
+     narrow partway down. */
+  .terminal-section {
+    border-top: 1px solid var(--line);
+    padding-top: clamp(2.5rem, 6vw, 4rem);
+  }
+
   .terminal-section :global(h2) {
     max-width: 20ch;
   }

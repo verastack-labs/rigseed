@@ -47,7 +47,14 @@ const version = 'v0.1.2'
       does not, so it is sized for the first without taxing the second.
     */
     }
-    <h1>Torrents, finally worth looking at.</h1>
+    {
+      /*
+      One coloured run, and only one. Eight accents exist to drive it, it
+      retints with everything else, and it is the cheapest characterful gesture
+      this world owns: the headline was a uniform white slab without it.
+    */
+    }
+    <h1>Torrents, <em>finally worth looking at.</em></h1>
 
     <p class="sub">
       <span class="name-script">rigseed</span> puts a modern interface on the daemon you already trust.
@@ -204,6 +211,13 @@ const version = 'v0.1.2'
     align-items: center;
   }
 
+  /* Not italic. em is the right element for a run the sentence stresses, and
+     the emphasis is carried by colour here rather than by slant. */
+  h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
   .pill {
     display: inline-flex;
     align-items: center;
@@ -293,10 +307,18 @@ const version = 'v0.1.2'
     transform-origin: 50% 0%;
     transform: rotateX(calc(var(--tilt, 14) * 1deg));
     will-change: transform;
-    /* The aura. Accent-tinted rather than black, so the image sits in a pool
-       of its own colour instead of on a drop shadow. */
+    /*
+     * Three layers, and the middle one was missing.
+     *
+     * The inset highlight is the light catching the top edge. The accent pool
+     * is the aura. Between them belongs an actual offset shadow: a halo with
+     * no offset makes a slab glow rather than sit in space, and with the
+     * surface now tilted back it is the shadow that sells the tilt. Long,
+     * soft, and pulled in at the sides so it falls under rather than around.
+     */
     box-shadow:
       0 -1px 0 color-mix(in srgb, var(--text) 8%, transparent) inset,
+      0 2.25rem 3.5rem -1.5rem var(--shadow-color),
       0 2rem 5rem color-mix(in srgb, var(--accent) 22%, transparent);
   }
 
