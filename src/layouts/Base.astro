@@ -22,7 +22,18 @@ interface Props {
 }
 
 const { title, description, version, releaseUrl } = Astro.props
-const social = new URL('social.png', Astro.site + Astro.url.pathname).toString()
+/*
+ * The social card, resolved against the site root rather than the current page.
+ *
+ * This was `new URL('social.png', Astro.site + Astro.url.pathname)`, which is
+ * relative to whatever page is rendering: the homepage got the right URL and
+ * every other page pointed at a file beside itself that has never existed. The
+ * image lives once, in public/, so the URL is built once from the base.
+ */
+const social = new URL(
+  `${import.meta.env.BASE_URL.replace(/\/+$/, '')}/social.png`,
+  Astro.site,
+).toString()
 
 // One canonical URL per page. Without it the same page is reachable with and
 // without a trailing slash and a crawler has to guess which is authoritative.
