@@ -1,0 +1,51 @@
+---
+/*
+ * Pointer-tracked border highlight, applied to any container marked
+ * data-spotlight. Each child element inside it that carries data-spot gets a
+ * gradient border that follows the cursor.
+ *
+ * One listener on the container rather than one per card. Cards are few here,
+ * but the pattern is the point: a pointermove handler per card means every
+ * card is doing coordinate maths on every frame the pointer is anywhere near
+ * the group.
+ *
+ * Fine pointers only. On a touch screen there is no hover state to track, and
+ * the effect would either never fire or fire once and stick on whichever card
+ * was tapped last.
+ */
+---
+
+<script>
+  const groups = document.querySelectorAll<HTMLElement>('[data-spotlight]')
+  const fine = window.matchMedia('(hover: hover) and (pointer: fine)')
+
+  if (fine.matches) {
+    groups.forEach((group) => {
+      const spots = Array.from(group.querySelectorAll<HTMLElement>('[data-spot]'))
+      let frame = 0
+      let last: PointerEvent | null = null
+
+      const apply = () => {
+        frame = 0
+        if (!last) return
+        for (const spot of spots) {
+          const r = spot.getBoundingClientRect()
+          // Written as percentages of the card so the gradient does not need
+          // to know the card's size, which changes with the column count.
+          spot.style.setProperty('--mx', `${((last.clientX - r.left) / r.width) * 100}%`)
+          spot.style.setProperty('--my', `${((last.clientY - r.top) / r.height) * 100}%`)
+        }
+      }
+
+      group.addEventListener(
+        'pointermove',
+        (e) => {
+          last = e
+          if (frame) return
+          frame = requestAnimationFrame(apply)
+        },
+        { passive: true },
+      )
+    })
+  }
+</script>

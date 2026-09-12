@@ -1,4 +1,6 @@
 ---
+import Spotlight from './Spotlight.astro'
+
 interface Props {
   version: string
 }
@@ -62,10 +64,10 @@ const platforms = [
     already run.
   </p>
 
-  <div class="grid">
+  <div class="grid" data-spotlight>
     {
       platforms.map((p) => (
-        <article class="card">
+        <article class="card" data-spot>
           <header>
             <h3>{p.name}</h3>
             <span class="detail mono">{p.detail}</span>
@@ -110,6 +112,8 @@ const platforms = [
     is what its licence requires and why it is offered from the same page as the binary.
     <a href={`${repo}/releases/latest`}>See all files on the release</a>.
   </p>
+
+  <Spotlight />
 </section>
 
 <style>

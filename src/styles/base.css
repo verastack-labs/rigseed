@@ -212,3 +212,54 @@ section {
   transform: translateY(0.06em);
   padding-right: 0.06em;
 }
+
+/*
+ * The pointer-tracked border highlight.
+ *
+ * The border is drawn as a gradient in a pseudo-element and then masked down
+ * to a 1px ring, which is the only way to get a border whose colour varies
+ * along its length; border-image cannot follow a radial gradient positioned by
+ * the cursor. The two masks are composited so the fill is excluded and only
+ * the padding ring survives.
+ *
+ * It sits on top of the card's own border rather than replacing it, so a
+ * browser without mask-composite support, or a visitor on a touch screen where
+ * the script never runs, sees the ordinary hairline and loses nothing.
+ */
+[data-spot] {
+  position: relative;
+}
+
+[data-spot]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: radial-gradient(
+    16rem circle at var(--mx, 50%) var(--my, -40%),
+    color-mix(in srgb, var(--accent) 85%, transparent),
+    transparent 58%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--t-base) ease;
+  pointer-events: none;
+}
+
+[data-spotlight]:hover [data-spot]::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-spot]::before {
+    transition: none;
+  }
+}
