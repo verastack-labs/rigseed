@@ -1,0 +1,299 @@
+---
+/*
+ * The mechanism, drawn.
+ *
+ * This is the one thing about rigseed that is genuinely interesting and it was
+ * only ever stated in a sentence. Three processes and the two wires between
+ * them is the whole product, so it gets to be a picture.
+ *
+ * The beam is the pattern those component libraries call an animated beam,
+ * built here as a travelling gradient over a hairline rather than as an SVG
+ * path between measured nodes. The measured version needs JavaScript to know
+ * where anything is and re-measures on every resize; this one is a flex item
+ * that stretches, so the layout does the work and the animation only moves
+ * colour along it.
+ *
+ * What travels is not decoration. Left to right is the app driving the daemon
+ * over HTTP; right to left is data coming back off the swarm. The two beams
+ * run in opposite directions for that reason and not for variety.
+ */
+
+const nodes = [
+  {
+    key: 'app',
+    title: 'rigseed',
+    sub: 'Tauri 2 · Rust host',
+    detail: 'The window, and nothing else. No torrent code of its own.',
+  },
+  {
+    key: 'daemon',
+    title: 'qbittorrent-nox',
+    sub: 'upstream, unpatched',
+    detail: 'Started with the app, bound to loopback, on a profile of its own.',
+  },
+  {
+    key: 'swarm',
+    title: 'the swarm',
+    sub: 'libtorrent',
+    detail: 'Your existing session, trackers and configuration. Untouched.',
+  },
+]
+---
+
+<section id="pipeline" class="wrap">
+  <p class="eyebrow">How it is put together</p>
+  <h2>Three processes and two wires.</h2>
+  <p class="lede">
+    rigseed writes no torrent code. It starts the daemon, talks to it over the same Web API the
+    built-in interface uses, and draws what comes back. If rigseed crashes, your transfers do not
+    even notice.
+  </p>
+
+  <div
+    class="pipe"
+    role="img"
+    aria-label="rigseed drives qbittorrent-nox over HTTP on 127.0.0.1, and qbittorrent-nox talks to the swarm over BitTorrent."
+  >
+    <article class="node">
+      <h3>{nodes[0].title}</h3>
+      <p class="sub mono">{nodes[0].sub}</p>
+      <p class="detail">{nodes[0].detail}</p>
+    </article>
+
+    <div class="wire">
+      <span class="line" data-beam></span>
+      <span class="label mono">HTTP · 127.0.0.1</span>
+    </div>
+
+    <article class="node accent">
+      <h3>{nodes[1].title}</h3>
+      <p class="sub mono">{nodes[1].sub}</p>
+      <p class="detail">{nodes[1].detail}</p>
+    </article>
+
+    <div class="wire">
+      <span class="line reverse" data-beam></span>
+      <span class="label mono">BitTorrent</span>
+    </div>
+
+    <article class="node">
+      <h3>{nodes[2].title}</h3>
+      <p class="sub mono">{nodes[2].sub}</p>
+      <p class="detail">{nodes[2].detail}</p>
+    </article>
+  </div>
+
+  <p class="foot">
+    The daemon is the upstream release, compiled and bundled unmodified. That is why nothing about
+    how your torrents behave changes, and it is why every release carries the source that built the
+    exact copy inside it.
+  </p>
+</section>
+
+<style>
+  h2 {
+    max-width: 18ch;
+  }
+
+  .lede {
+    margin-top: 1rem;
+    max-width: 56ch;
+  }
+
+  .pipe {
+    display: grid;
+    gap: 0;
+    margin-top: clamp(2.5rem, 6vw, 4rem);
+    align-items: stretch;
+  }
+
+  .node {
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    background: var(--surface);
+    padding: 1.25rem 1.35rem 1.4rem;
+  }
+
+  /* The daemon is the one doing the work, so it is the one carrying the
+     accent. A row where every card looks identical says the three are
+     interchangeable, and they are not. */
+  .node.accent {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+
+  .node h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .node .sub {
+    margin-top: 0.3rem;
+    font-size: 0.6875rem;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+
+  .node .detail {
+    margin-top: 0.75rem;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+
+  .wire {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Vertical by default, because the stacked layout is the narrow one and
+       narrow is the common case. */
+    min-height: 4.25rem;
+  }
+
+  .line {
+    position: absolute;
+    inset: 0 auto;
+    left: 50%;
+    width: 1px;
+    translate: -50% 0;
+    background: var(--line);
+    overflow: hidden;
+  }
+
+  /* The travelling pulse. A gradient taller than its track, slid along it, so
+     nothing but a background position changes per frame. */
+  .line::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      color-mix(in srgb, var(--accent) 90%, transparent) 42%,
+      color-mix(in srgb, var(--accent) 100%, transparent) 50%,
+      color-mix(in srgb, var(--accent) 90%, transparent) 58%,
+      transparent 100%
+    );
+    background-size: 100% 55%;
+    background-repeat: no-repeat;
+    animation: run-down 2.6s linear infinite;
+  }
+
+  .line.reverse::after {
+    animation-name: run-up;
+    animation-duration: 3.1s;
+  }
+
+  @keyframes run-down {
+    from {
+      background-position: 0 -60%;
+    }
+    to {
+      background-position: 0 160%;
+    }
+  }
+
+  @keyframes run-up {
+    from {
+      background-position: 0 160%;
+    }
+    to {
+      background-position: 0 -60%;
+    }
+  }
+
+  .label {
+    position: relative;
+    z-index: 1;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--text-dimmer);
+    font-size: 0.625rem;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  .foot {
+    margin-top: clamp(2rem, 4vw, 2.75rem);
+    max-width: 68ch;
+    color: var(--text-dim);
+    font-size: 0.875rem;
+  }
+
+  @media (min-width: 56rem) {
+    .pipe {
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      align-items: center;
+    }
+
+    .wire {
+      min-height: 0;
+      width: clamp(4rem, 8vw, 7rem);
+      padding-block: 0;
+    }
+
+    /* Horizontal, and the gradient turns with it. */
+    .line {
+      inset: 50% 0 auto;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      translate: 0 -50%;
+    }
+
+    .line::after {
+      background-image: linear-gradient(
+        to right,
+        transparent 0%,
+        color-mix(in srgb, var(--accent) 90%, transparent) 42%,
+        color-mix(in srgb, var(--accent) 100%, transparent) 50%,
+        color-mix(in srgb, var(--accent) 90%, transparent) 58%,
+        transparent 100%
+      );
+      background-size: 55% 100%;
+      animation-name: run-right;
+    }
+
+    .line.reverse::after {
+      animation-name: run-left;
+    }
+
+    @keyframes run-right {
+      from {
+        background-position: -60% 0;
+      }
+      to {
+        background-position: 160% 0;
+      }
+    }
+
+    @keyframes run-left {
+      from {
+        background-position: 160% 0;
+      }
+      to {
+        background-position: -60% 0;
+      }
+    }
+
+    .label {
+      /* Sat on the wire rather than beside it, so the line reads as one run
+         with a name on it rather than as two stubs. */
+      margin-top: -0.1rem;
+    }
+  }
+
+  /*
+   * The diagram still says everything it says without the pulse: three boxes,
+   * two wires, two labels. Only the movement stops.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .line::after {
+      animation: none;
+      background: color-mix(in srgb, var(--accent) 40%, transparent);
+    }
+  }
+</style>
