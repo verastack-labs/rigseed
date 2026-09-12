@@ -35,7 +35,20 @@ const accents = [
     */
     }
     <span class="ghost" data-ghost aria-hidden="true">
-      <svg width="20" height="22" viewBox="0 0 20 22" fill="none">
+      {
+        /*
+        Two forms of the same pointer, and the media query picks one.
+
+        A touch screen has no cursor, so an arrow gliding across it shows the
+        visitor an input they do not have. But the reason the demonstration
+        exists does not change with the input: the swatch row still reads as a
+        legend until something moves it. So on a coarse pointer the arrow is
+        swapped for the disc every touch interface uses to mean a contact
+        point, and everything else, the sagging path, the press, the burst,
+        stays exactly as it is.
+      */
+      }
+      <svg class="arrow" width="20" height="22" viewBox="0 0 20 22" fill="none">
         <path
           d="M2 1.6 17 11.2l-6.4 1.1L7.3 19 2 1.6Z"
           fill="var(--text)"
@@ -43,6 +56,7 @@ const accents = [
           stroke-width="1.4"
           stroke-linejoin="round"></path>
       </svg>
+      <span class="touch"></span>
     </span>
     {
       /*
@@ -205,17 +219,8 @@ const accents = [
     const ghost = document.querySelector<HTMLElement>('[data-ghost]')
     const burst = document.querySelector<HTMLElement>('[data-burst]')
     const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const coarse = window.matchMedia('(pointer: coarse)')
 
-    if (
-      !demonstrated &&
-      panel &&
-      ghost &&
-      burst &&
-      !calm.matches &&
-      !coarse.matches &&
-      swatches.length > 4
-    ) {
+    if (!demonstrated && panel && ghost && burst && !calm.matches && swatches.length > 4) {
       const original = root.dataset.accent ?? 'dustblue'
       let cancelled = false
       let timers: number[] = []
@@ -461,6 +466,47 @@ const accents = [
      which reads as the click without inventing a cursor state. */
   .ghost.is-pressed svg {
     transform: translate(1px, 1px) scale(0.88);
+  }
+
+  /* The touch form, inert until a coarse pointer asks for it. */
+  .touch {
+    display: none;
+  }
+
+  /*
+   * On a touch screen the pointer becomes a contact disc.
+   *
+   * Sized at 28px, which is the size these are conventionally drawn at and
+   * close enough to a real fingertip to read as one without covering the
+   * swatch it is about to press. The arrow's hotspot is its tip, so .ghost
+   * carries a two pixel nudge to put that tip on the coordinate; a disc's
+   * hotspot is its centre, so the nudge is cleared and the disc offsets
+   * itself by half its own size instead.
+   */
+  @media (pointer: coarse) {
+    .ghost {
+      margin: 0;
+    }
+
+    .ghost .arrow {
+      display: none;
+    }
+
+    .touch {
+      display: block;
+      width: 1.75rem;
+      height: 1.75rem;
+      margin: -0.875rem 0 0 -0.875rem;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--text) 18%, transparent);
+      border: 1.5px solid color-mix(in srgb, var(--text) 70%, transparent);
+      transition: transform var(--t-fast) ease;
+    }
+
+    /* The same press the arrow does, in the gesture a finger makes. */
+    .ghost.is-pressed .touch {
+      transform: scale(0.82);
+    }
   }
 
   /*
