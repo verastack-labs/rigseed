@@ -1,6 +1,9 @@
 ---
 import { Image } from 'astro:assets'
+import HeroAmbient from './HeroAmbient.astro'
 import dark from '../assets/screens/02-transfers-dark.png'
+
+const base = import.meta.env.BASE_URL
 
 // Voice: plain, factual, slightly technical. Sentence case throughout, no
 // exclamation marks, no encouragement. rigseed is lowercase always, including
@@ -9,21 +12,41 @@ const version = 'v0.1.1'
 ---
 
 <header class="hero">
+  <HeroAmbient />
+
   <div class="wrap inner">
-    <!-- The eyebrow is the one uppercase element in the system, so it must not
-       carry another project's brand name: text-transform would render
-       qBittorrent as QBITTORRENT and mangle a name that is not ours to
-       restyle. -->
-    <p class="eyebrow">Desktop client</p>
-    <h1>rigseed puts a modern interface on the daemon you already trust.</h1>
+    {
+      /*
+      The status pill carries the two facts a visitor needs before anything
+      else: what version this is and whether it runs on their machine. The dot
+      is the app's own "connected" indicator, which is the only live state the
+      site has to report.
+    */
+    }
+    <p class="pill">
+      <span class="dot" aria-hidden="true"></span>
+      {version} · Windows, macOS and Linux
+    </p>
+
+    {
+      /*
+      The name is set in the script, at headline scale. The rule lives in
+      base.css rather than here, because "the name is set in script wherever
+      the name appears" is a system rule and not a detail of this one section.
+    */
+    }
+    <h1>
+      <span class="name-script">rigseed</span> puts a modern interface on the daemon you already trust.
+    </h1>
+
     <p class="lede">
       It drives qBittorrent over the Web API the daemon already exposes. The engine underneath is
       unchanged, so nothing about how your torrents run is new. Only the part you look at.
     </p>
 
     <div class="actions">
-      <a class="btn primary" href="#download">Download {version}</a>
-      <a class="btn" href="#screens">See the screens</a>
+      <a class="btn primary" href={`${base}/download/`}>Download {version}</a>
+      <a class="btn" href={`${base}/screens/`}>See the screens</a>
     </div>
 
     <!-- The API is visible. Every screen in the app prints the endpoints it
@@ -32,34 +55,114 @@ const version = 'v0.1.1'
     <p class="endpoints mono">sync/maindata · torrents/info · app/preferences</p>
   </div>
 
-  <div class="wrap shot-wrap">
-    <Image
-      src={dark}
-      alt="rigseed showing six torrents in grid view, with a sidebar of status filters, categories and tags, and a live download and upload graph."
-      {/*
-        The container is 64rem, so a 2x display needs 2048 physical pixels and
-        a 3x one needs 3072. Capping the srcset at 1440w made the browser take
-        that file and upscale it, which is what made the first version look
-        soft: the capture was always 2880 wide, the widths list was not.
+  {
+    /*
+    The surface is shown whole and tilted back, then straightens as you scroll.
+    It was cropped to 16/9 before, which cut the floating action button off the
+    bottom right corner: the crop was removing a real control from a picture
+    whose entire job is showing the real thing. Laying it back instead keeps
+    every pixel of the capture and still gives the section something to do
+    between the fold and the next heading.
+  */
+  }
+  <div class="stage-wrap" data-stage-wrap>
+    <div class="stage" data-stage>
+      <Image
+        src={dark}
+        alt="rigseed showing six torrents in grid view, with a sidebar of status filters, categories and tags, and a live download and upload graph."
+        {/*
+          The container is 62rem, so a 2x display needs 1984 physical pixels and
+          a 3x one needs nearly 3000. Capping the srcset at 1440w made the
+          browser take that file and upscale it, which is what made the first
+          version look soft: the capture was always 2880 wide, the widths list
+          was not.
 
-        quality 90 rather than the default 80. This is flat UI with 1px borders
-        and small mono type, where webp's default ringing shows on every rule,
-        and the file is only a few tens of kB either way.
-      */}
-      widths={[720, 1080, 1440, 2048, 2880]}
-      sizes="(min-width: 70rem) 64rem, 100vw"
-      quality={90}
-      loading="eager"
-      fetchpriority="high"
-      class="shot"
-    />
+          quality 90 rather than the default 80. This is flat UI with 1px
+          borders and small mono type, where webp's default ringing shows on
+          every rule, and the file is only a few tens of kB either way.
+        */}
+        widths={[720, 1080, 1440, 2048, 2880]}
+        sizes="(min-width: 68rem) 62rem, 100vw"
+        quality={90}
+        loading="eager"
+        fetchpriority="high"
+        class="shot"
+      />
+    </div>
   </div>
 </header>
+
+<script>
+  /*
+   * Re-run on every navigation, because the router keeps this module alive across page changes and the element it drives is replaced underneath it.
+   *
+   * astro:page-load fires at the end of the first load and after every
+   * client-side navigation, which is the only hook needed. Listeners are hung
+   * off an AbortController that is torn down first, so navigating back and
+   * forth cannot leave a stack of handlers behind on window or document.
+   */
+  let controller: AbortController | null = null
+
+  const setup = () => {
+    controller?.abort()
+    controller = new AbortController()
+    const { signal } = controller
+
+    /*
+     * The capture lies back at rest and stands up as you scroll past it.
+     *
+     * Driven from scrollY against a fixed range rather than from the element's
+     * own intersection, because the element is in the first viewport on load and
+     * an observer-based version has nothing to observe until the reader has
+     * already moved. The starting angle is small enough that the screenshot is
+     * completely legible before anybody scrolls at all, which is the point: this
+     * is a resting state, not a reveal waiting to be triggered.
+     */
+    const stage = document.querySelector<HTMLElement>('[data-stage]')
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const narrow = window.matchMedia('(max-width: 48rem)')
+
+    if (stage && !calm.matches) {
+      const START = 14
+      const RANGE = 420
+
+      let ticking = false
+      const update = () => {
+        ticking = false
+        if (narrow.matches) {
+          stage.style.removeProperty('--tilt')
+          return
+        }
+        const t = Math.min(window.scrollY / RANGE, 1)
+        // Eased out, so most of the straightening happens early and the last few
+        // degrees do not drag on for another two hundred pixels.
+        const eased = 1 - Math.pow(1 - t, 2)
+        stage.style.setProperty('--tilt', String(START * (1 - eased)))
+      }
+
+      window.addEventListener(
+        'scroll',
+        () => {
+          if (ticking) return
+          ticking = true
+          requestAnimationFrame(update)
+        },
+        { passive: true, signal },
+      )
+      window.addEventListener('resize', update, { signal })
+      update()
+    }
+  }
+
+  document.addEventListener('astro:page-load', setup)
+</script>
 
 <style>
   .hero {
     position: relative;
-    padding-block: clamp(2rem, 5vw, 3.5rem) clamp(3rem, 7vw, 5rem);
+    /* The surface is a finished object again rather than something running off
+       an edge, so the section closes properly underneath it. */
+    padding-block: clamp(3.5rem, 8vw, 6rem) clamp(3rem, 7vw, 5rem);
     overflow: hidden;
   }
 
@@ -68,66 +171,68 @@ const version = 'v0.1.1'
   .hero::before {
     content: '';
     position: absolute;
-    inset: -30% 0 auto;
+    inset: -22rem 0 auto;
     height: 60rem;
     background: radial-gradient(
-      50% 40% at 50% 30%,
-      color-mix(in srgb, var(--accent) 13%, transparent),
-      transparent 70%
+      46% 38% at 50% 50%,
+      color-mix(in srgb, var(--accent) 15%, transparent),
+      transparent 72%
     );
     pointer-events: none;
     z-index: -1;
   }
 
   .inner {
-    text-align: left;
+    /* Above the ambient layer, which is absolutely positioned at z-index 0
+       across the whole section. */
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 1.75rem;
+    padding: 0.3rem 0.75rem 0.3rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: -0.01em;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 18%, transparent);
   }
 
   h1 {
-    max-width: 20ch;
+    /* Three lines at the desktop size. The measure is what gives the block its
+       shape, so it is set here rather than left to the viewport. */
+    max-width: 19ch;
   }
 
   .lede {
-    margin-top: 1.25rem;
+    margin-top: 1.5rem;
+    max-width: 52ch;
   }
 
   .actions {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 0.75rem;
-    margin-top: 2rem;
-  }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.625rem 1.125rem;
-    border: 1px solid var(--line);
-    border-radius: var(--r-control);
-    background: var(--surface);
-    color: var(--text);
-    font-size: 0.9375rem;
-    font-weight: 500;
-    text-decoration: none;
-    transition:
-      background-color var(--t-fast) ease,
-      border-color var(--t-fast) ease,
-      transform var(--t-fast) var(--spring);
-  }
-
-  .btn:hover {
-    background: var(--surface2);
-    transform: translateY(-1px);
-  }
-
-  .btn.primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--accent-on);
-  }
-
-  .btn.primary:hover {
-    background: color-mix(in srgb, var(--accent) 88%, var(--text));
+    margin-top: 2.25rem;
   }
 
   .endpoints {
@@ -136,16 +241,51 @@ const version = 'v0.1.1'
     font-size: 0.75rem;
   }
 
-  .shot-wrap {
-    margin-top: clamp(2.5rem, 6vw, 4rem);
+  .stage-wrap {
+    position: relative;
+    z-index: 1;
+    width: min(100% - 2.5rem, 62rem);
+    margin: clamp(3rem, 7vw, 4.5rem) auto 0;
   }
 
-  /* Shadow is reserved for things that genuinely float, and a hero image is
-     one of them. The border is the same 1px var(--line) as everything else. */
-  .shot {
-    width: 100%;
+  .stage-wrap {
+    /* The vanishing point. Far enough back that the tilt reads as depth rather
+       than as a fisheye, which is what a short perspective does to something
+       this wide. */
+    perspective: 2200px;
+  }
+
+  .stage {
+    position: relative;
+    overflow: hidden;
     border: 1px solid var(--line);
     border-radius: var(--r-card);
-    box-shadow: var(--shadow-card);
+    background: var(--surface);
+    /* Hinged along its top edge, so it stands up rather than pivoting about
+       its middle. --tilt is written by the scroll handler. */
+    transform-origin: 50% 0%;
+    transform: rotateX(calc(var(--tilt, 14) * 1deg));
+    will-change: transform;
+    /* The aura. Accent-tinted rather than black, so the image sits in a pool
+       of its own colour instead of on a drop shadow. */
+    box-shadow:
+      0 -1px 0 color-mix(in srgb, var(--text) 8%, transparent) inset,
+      0 2rem 5rem color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+
+  .shot {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* No tilt where it would cost more than it gives: a narrow screen is mostly
+     scroll and the foreshortening eats the small type, and under reduced
+     motion a transform driven by scroll position is precisely the thing being
+     opted out of. Both land on the flat, finished state. */
+  @media (max-width: 48rem), (prefers-reduced-motion: reduce) {
+    .stage {
+      transform: none;
+    }
   }
 </style>

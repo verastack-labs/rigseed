@@ -15,6 +15,22 @@ The design system is called **Cozy Terminal**: warm low-contrast neutrals, a use
 accent that tints every surface rather than recolouring a few highlights, and monospace
 reserved for data.
 
+## The pages
+
+Three of them, and the split is deliberate.
+
+| Page         | Job                                                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `/`          | Make the case. Centred hero, the running transfer list, the theming demonstration, one close.                          |
+| `/screens/`  | The depth. A sticky tour of the five real captures, then an index of all nine screens with their routes and endpoints. |
+| `/download/` | Get the file. Real filenames, real verify commands, and each platform's warning where somebody will actually meet it.  |
+
+The homepage is the category standard played straight, at the craft bar Linear
+and Raycast set. That decision is recorded as a direction contract in an HTML
+comment at the top of `<body>` in `Base.astro`, and the build is checked against
+it rather than against taste. It survives into `dist/`, which is the point: a
+contract the build erases is a contract nobody can audit.
+
 ## Running it
 
     pnpm install
@@ -31,13 +47,29 @@ production, which is why the deploy workflow greps the built output for it.
 
 ## How the theme works
 
+Two files, and the division between them is the whole idea.
+
 `src/styles/tokens.css` is a port of the canonical design foundations, not a re-derivation.
 Two stages, exactly as the app does it: a mode-dependent base palette with per-mode tint
 strengths, then the chosen accent mixed into every base tone through `color-mix`.
 
+`src/styles/site-theme.css` overrides one thing: the base neutrals those stages mix into.
+The app's are warm and deliberately low contrast, because somebody has that window open for
+hours. A landing page is read once, quickly, often in daylight, and has about four seconds
+to look like something, so the site takes a colder, deeper ground and brighter text.
+
+**The eight accent hues are never touched.** The theming section demonstrates that those are
+the app's real palette, and a site that quietly brightened them would be lying somewhere
+nobody would think to check.
+
 Mode and accent are attributes on the root element, so a theme change is one attribute write
 and never a value computed in JavaScript. That is why the theming section can retint the whole
 page: it is the same mechanism the app uses, not an imitation of it.
+
+One consequence worth knowing before you debug it: the client router copies the incoming
+document's `<html>` attributes over the live ones, which includes both of these. They are
+reapplied on `astro:after-swap`, otherwise a chosen accent is lost the moment you open
+another page.
 
 **The accent values are not written twice.** Each swatch carries its own `data-accent`, so the
 dot inside it resolves `--accent` from the stylesheet. A swatch cannot disagree with the app's
@@ -55,6 +87,39 @@ look like a live daemon would overclaim.
 
 Captured at the 1440x900 design canvas at 2x. `astro:assets` emits webp and srcsets at build
 time, which is why they live in `src/assets` rather than `public`.
+
+The hero capture is shown whole and hinged along its top edge, lying back fourteen degrees at
+rest and standing up as you scroll. It used to be cropped to 16/9, which cut the floating
+action button off the bottom right corner: a real control, removed from a picture whose whole
+argument is that it shows the real thing.
+
+## Typography
+
+Inter for sentences, JetBrains Mono for data, and **Yellowtail for the product's name and
+nothing else** - in the wordmark and where the name appears in the headline. That rule is why
+`.name-script` lives in `base.css` rather than in whichever component needed it first.
+
+Anything set in the script is held invisible until Yellowtail has loaded, then revealed
+together. The face ships with `font-display: swap`, so without this the name paints in a
+fallback cursive and jumps, which on a word that distinctive is the first thing anyone sees
+the site do. `visibility` rather than `display`, so the text keeps its box and nothing moves
+while it waits, with a 1.5s deadline after which it shows regardless.
+
+## Navigation
+
+The bar is `transition:persist`ed through the client router, so it is the same live DOM node
+across a navigation rather than being rebuilt. It contracts into a bordered glass pill once
+content passes under it, and grows a Download button at roughly the moment the hero's copy of
+that button leaves the screen.
+
+Two things follow from persisting it, and both are easy to get wrong:
+
+- The script runs **once for the session**. Anything page-dependent is recomputed on
+  `astro:page-load`, including which link is current.
+- Every _other_ component's script has the opposite problem. A module executes once, so
+  anything set up at parse time stops initialising after the first client-side navigation.
+  They all set up on `astro:page-load` with listeners bound to an `AbortController` that is
+  torn down first.
 
 ## Structured data
 

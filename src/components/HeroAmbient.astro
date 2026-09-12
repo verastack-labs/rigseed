@@ -1,0 +1,272 @@
+---
+/*
+ * The ambient layer behind the hero.
+ *
+ * Every glyph is from this product's own world rather than from a generic
+ * sparkle set: a magnet link, the piece map, a swarm of peers, the two
+ * directions a transfer moves in, a checksum, a verified file, and the
+ * seedling. Someone who uses a torrent client reads all seven without a label,
+ * which is the whole reason they are these and not stars.
+ *
+ * They are drawn in the app's icon grammar, 1.9 stroke and round caps, so they
+ * are recognisably the same hand as the seedling in the wordmark. Everything is
+ * currentColor, so the layer retints with the accent along with everything
+ * else.
+ */
+---
+
+<div class="ambient" data-ambient aria-hidden="true">
+  <svg class="defs" width="0" height="0" focusable="false">
+    <defs>
+      <g id="g-magnet">
+        <path d="M5 4v7a7 7 0 0 0 14 0V4h-4v7a3 3 0 0 1-6 0V4Z"></path>
+        <path d="M5 8h4M15 8h4"></path>
+      </g>
+
+      <g id="g-down">
+        <path d="M12 3v11"></path>
+        <path d="m7 10 5 5 5-5"></path>
+        <path d="M4 19h16"></path>
+      </g>
+
+      <g id="g-up">
+        <path d="M12 16V5"></path>
+        <path d="m7 9 5-5 5 5"></path>
+        <path d="M4 20h16"></path>
+      </g>
+
+      <!-- The piece map, part complete. It is the one picture of a torrent
+           that only a torrent client draws. -->
+      <g id="g-pieces">
+        <rect x="3" y="3" width="5.4" height="5.4" rx="1"></rect>
+        <rect x="9.3" y="3" width="5.4" height="5.4" rx="1" fill="currentColor"></rect>
+        <rect x="15.6" y="3" width="5.4" height="5.4" rx="1"></rect>
+        <rect x="3" y="9.3" width="5.4" height="5.4" rx="1" fill="currentColor"></rect>
+        <rect x="9.3" y="9.3" width="5.4" height="5.4" rx="1"></rect>
+        <rect x="15.6" y="9.3" width="5.4" height="5.4" rx="1" fill="currentColor"></rect>
+        <rect x="3" y="15.6" width="5.4" height="5.4" rx="1"></rect>
+        <rect x="9.3" y="15.6" width="5.4" height="5.4" rx="1" fill="currentColor"></rect>
+        <rect x="15.6" y="15.6" width="5.4" height="5.4" rx="1"></rect>
+      </g>
+
+      <!-- Peers: a swarm, not a hierarchy. Everything connected to everything,
+           which is the point of the protocol. -->
+      <g id="g-peers">
+        <circle cx="12" cy="4.5" r="2.2"></circle>
+        <circle cx="4.5" cy="17" r="2.2"></circle>
+        <circle cx="19.5" cy="17" r="2.2"></circle>
+        <path d="M10.4 6.4 6.1 15.1M13.6 6.4l4.3 8.7M6.7 17h10.6"></path>
+      </g>
+
+      <g id="g-hash">
+        <path d="M9 3.5 7 20.5M17 3.5l-2 17M3.8 8.5h16.4M3 15.5h16.4"></path>
+      </g>
+
+      <g id="g-verified">
+        <path d="M12 2.6 20 6v6c0 4.2-3.2 7.6-8 9.4C7.2 19.6 4 16.2 4 12V6Z"></path>
+        <path d="m8.8 11.9 2.4 2.4 4.2-4.2"></path>
+      </g>
+
+      <!-- The seedling from the wordmark, so the layer is signed. -->
+      <g id="g-seed">
+        <path d="M12 20V8.4"></path>
+        <path d="M12 12c0-3.2 2.6-5.8 5.8-5.8 0 3.2-2.6 5.8-5.8 5.8Z" fill="currentColor"></path>
+        <path d="M12 15.8c0-2.4-2-4.4-4.4-4.4 0 2.4 2 4.4 4.4 4.4Z" fill="currentColor"></path>
+      </g>
+    </defs>
+  </svg>
+</div>
+
+<script>
+  /*
+   * Sprites are created, flown, and recycled. Each cycle re-rolls position,
+   * size, rotation, drift, duration and peak opacity, so the layer never
+   * repeats a composition and never needs a designed arrangement.
+   *
+   * Three things keep it from being a liability. It pauses when the hero
+   * leaves the viewport or the tab is hidden, because an animation nobody can
+   * see is pure battery. It is inert to the pointer. And under reduced motion
+   * the sprites are placed once and never move, which keeps the texture and
+   * drops the thing that setting is actually asking about.
+   */
+  const GLYPHS = ['magnet', 'down', 'up', 'pieces', 'peers', 'hash', 'verified', 'seed']
+  const COUNT = 11
+  const NS = 'http://www.w3.org/2000/svg'
+
+  let controller: AbortController | null = null
+
+  const rand = (min: number, max: number) => min + Math.random() * (max - min)
+  const pick = <T,>(list: readonly T[]) => list[Math.floor(Math.random() * list.length)]
+
+  const setup = () => {
+    controller?.abort()
+    controller = new AbortController()
+    const { signal } = controller
+
+    const layer = document.querySelector<HTMLElement>('[data-ambient]')
+    if (!layer) return
+
+    // Rebuilt from scratch on every arrival, so a navigation back to this page
+    // cannot end up with two layers of sprites stacked on one another.
+    layer.querySelectorAll('.sprite').forEach((el) => el.remove())
+
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
+
+    // Keyed by sprite rather than appended to a list. Each sprite recycles
+    // every ten seconds or so for as long as the tab is open, and a list would
+    // grow by one entry per recycle forever while the pause handler walked all
+    // of them.
+    const animations = new Map<SVGElement, Animation>()
+
+    const make = () => {
+      const svg = document.createElementNS(NS, 'svg')
+      svg.setAttribute('class', 'sprite')
+      svg.setAttribute('viewBox', '0 0 24 24')
+      const use = document.createElementNS(NS, 'use')
+      use.setAttribute('href', `#g-${pick(GLYPHS)}`)
+      svg.appendChild(use)
+      layer.appendChild(svg)
+      return svg
+    }
+
+    const place = (el: SVGElement) => {
+      const size = rand(15, 34)
+      el.style.width = `${size}px`
+      el.style.height = `${size}px`
+      // Kept off the vertical centre band, which is where the headline sits.
+      // The layer is behind the text either way, but a glyph directly under a
+      // letter reads as dirt on the screen rather than as atmosphere.
+      const y = Math.random() < 0.5 ? rand(2, 26) : rand(62, 94)
+      el.style.left = `${rand(2, 94)}%`
+      el.style.top = `${y}%`
+      return size
+    }
+
+    const fly = (el: SVGElement) => {
+      place(el)
+
+      const r0 = rand(-28, 28)
+      const r1 = r0 + rand(-22, 22)
+      const dx = rand(-38, 38)
+      const dy = rand(-74, -18)
+      const peak = rand(0.13, 0.32)
+
+      const animation = el.animate(
+        [
+          { opacity: 0, transform: `translate(0px, 0px) rotate(${r0}deg) scale(0.72)` },
+          {
+            opacity: peak,
+            offset: 0.22,
+            transform: `translate(${dx * 0.22}px, ${dy * 0.22}px) rotate(${r0 + (r1 - r0) * 0.22}deg) scale(1)`,
+          },
+          {
+            opacity: peak,
+            offset: 0.74,
+            transform: `translate(${dx * 0.74}px, ${dy * 0.74}px) rotate(${r0 + (r1 - r0) * 0.74}deg) scale(1)`,
+          },
+          { opacity: 0, transform: `translate(${dx}px, ${dy}px) rotate(${r1}deg) scale(0.88)` },
+        ],
+        {
+          duration: rand(9000, 17000),
+          delay: rand(0, 5200),
+          easing: 'ease-in-out',
+          fill: 'forwards',
+        },
+      )
+
+      // Recycled rather than replaced. The element stays, the composition is
+      // re-rolled, so the layer holds a constant node count forever.
+      animation.addEventListener('finish', () => {
+        if (signal.aborted) return
+        fly(el)
+      })
+
+      animations.set(el, animation)
+    }
+
+    const sprites = Array.from({ length: COUNT }, make)
+
+    if (calm.matches) {
+      // Placed once, at a fixed low opacity, and left alone.
+      sprites.forEach((el) => {
+        place(el)
+        el.style.opacity = '0.18'
+        el.style.transform = `rotate(${rand(-20, 20)}deg)`
+      })
+      signal.addEventListener('abort', () => sprites.forEach((el) => el.remove()))
+      return
+    }
+
+    sprites.forEach(fly)
+
+    const hero = layer.parentElement
+    let onScreen = true
+    let visible = !document.hidden
+
+    const sync = () => {
+      const go = onScreen && visible
+      for (const a of animations.values()) {
+        if (go) a.play()
+        else a.pause()
+      }
+    }
+
+    document.addEventListener(
+      'visibilitychange',
+      () => {
+        visible = !document.hidden
+        sync()
+      },
+      { signal },
+    )
+
+    if (hero) {
+      const watcher = new IntersectionObserver((entries) => {
+        for (const entry of entries) onScreen = entry.isIntersecting
+        sync()
+      })
+      watcher.observe(hero)
+      signal.addEventListener('abort', () => watcher.disconnect())
+    }
+
+    signal.addEventListener('abort', () => {
+      for (const a of animations.values()) a.cancel()
+      animations.clear()
+      sprites.forEach((el) => el.remove())
+    })
+  }
+
+  document.addEventListener('astro:page-load', setup)
+</script>
+
+<style>
+  .ambient {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    /* Behind everything the section actually says. The hero's own z-index
+       stacking puts the copy and the screenshot above this. */
+    z-index: 0;
+    color: var(--accent);
+  }
+
+  .defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+
+  /* Set on the sprites rather than on each glyph, so the eight drawings stay
+     plain geometry and the layer decides how they are rendered. */
+  .ambient :global(.sprite) {
+    position: absolute;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+</style>

@@ -1,0 +1,88 @@
+/*
+ * The site's own ground.
+ *
+ * tokens.css is a faithful port of the app's foundations and stays that way:
+ * the eight accent hues, the two-stage tinting, the per-mode tint strengths
+ * are all the app's. This file changes only the base neutrals those stages mix
+ * into, which is the one thing the site is allowed to have of its own.
+ *
+ * Why it exists. The app's neutrals are warm and deliberately low contrast,
+ * because somebody has that window open for hours and a high-contrast surface
+ * is tiring to sit in front of. A landing page is the opposite situation: it
+ * is read once, quickly, often in daylight on a phone, and it has about four
+ * seconds to look like something. So the site takes a colder, deeper ground
+ * and a brighter text, and the accent carries further because there is more
+ * distance between it and everything else.
+ *
+ * The hues are still the app's. Nothing here renames or re-values an accent,
+ * because the theming section demonstrates that those are qBittorrent's real
+ * palette and a site that quietly brightened them would be lying in a place
+ * nobody would think to check.
+ */
+
+:root {
+  /* Blue-biased rather than neutral grey. Every one of these has more blue
+     than red in it, so the ground itself is the first place the colour comes
+     from and the accent is not doing that work alone. */
+  --base-bg: #05080e;
+  --base-sidebar: #03050a;
+  --base-surface: #101724;
+  --base-surface2: #1a2333;
+  --border: #35435c;
+
+  /* The contrast. #f8fafd on #05080e is a long way past the old pairing, and
+     the two dim tones are pulled up with it so the hierarchy keeps the same
+     shape rather than just getting further apart at the top. The border is
+     pulled up hardest: on a ground this dark a hairline is the only thing
+     separating two panels, and a border nobody can see is a border that is not
+     doing its job. */
+  --text: #f8fafd;
+  --text-dim: #adbccf;
+  --text-dimmer: #7d8da3;
+
+  --accent-on: #05080e;
+  --shadow-color: rgb(0 2 8 / 0.8);
+
+  /* Lower on the grounds and higher on the raised surfaces than the app uses.
+     A near-black ground that takes 7% accent goes muddy; a surface sitting on
+     top of it can take more, and the extra tint is what makes a panel read as
+     lifted without a border doing all of the work. */
+  --tint-bg: 4%;
+  --tint-sidebar: 5%;
+  --tint-surface: 10%;
+  --tint-surface2: 14%;
+  --tint-border: 24%;
+
+  /* The status trio, brightened to sit on the deeper ground at the same
+     apparent weight it had on the app's. */
+  --ok: #6fc08a;
+  --warn: #e0b154;
+  --danger: #e0705a;
+}
+
+/*
+ * Light mode stays close to the app's, because a light landing page in
+ * daylight has the opposite problem: it is already high contrast and pushing
+ * it further just makes it harsh. It gains a cool bias to match the dark side
+ * and a little more separation between the ground and the raised surfaces.
+ */
+[data-mode='light'] {
+  --base-bg: #f4f6f9;
+  --base-sidebar: #eaeef4;
+  --base-surface: #ffffff;
+  --base-surface2: #f7f9fc;
+  --border: #d3dae4;
+
+  --text: #070c15;
+  --text-dim: #4e5a6c;
+  --text-dimmer: #79879a;
+
+  --accent-on: #ffffff;
+  --shadow-color: rgb(16 28 48 / 0.16);
+
+  --tint-bg: 8%;
+  --tint-sidebar: 11%;
+  --tint-surface: 3%;
+  --tint-surface2: 7%;
+  --tint-border: 26%;
+}

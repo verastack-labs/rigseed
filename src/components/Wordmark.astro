@@ -1,0 +1,90 @@
+---
+import Mark from './Mark.astro'
+
+interface Props {
+  /**
+   * Cap height of the script, in rem. The seedling scales from it.
+   *
+   * Optional, and deliberately so: left off, the size comes from --wm-size on
+   * an ancestor, which is the only way a parent can animate it. An inline
+   * style would win over the parent's rule and the nav's wordmark would never
+   * shrink.
+   */
+  size?: number
+  /** Renders a span rather than a link, for the footer and the nav's own page. */
+  as?: 'a' | 'span'
+  class?: string
+}
+
+const { size, as = 'a', class: className } = Astro.props
+const base = import.meta.env.BASE_URL
+const Tag = as
+---
+
+{
+  /*
+  The seedling stays in the accent and the script stays in the text colour,
+  which is the relationship the app uses between its icon and its title. The
+  script is the only characterful face in the system, so it earns its place by
+  being the single thing on the page set in it.
+*/
+}
+<Tag
+  class:list={['wordmark', className]}
+  href={as === 'a' ? base : undefined}
+  style={size ? `--wm-size:${size}rem` : undefined}
+>
+  <Mark size={Math.round((size ?? 1.5) * 15)} class="wordmark-leaf" />
+  <span class="wordmark-name">rigseed</span>
+</Tag>
+
+<style>
+  .wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    font-size: var(--wm-size, 1.5rem);
+    color: var(--accent);
+    text-decoration: none;
+    line-height: 1;
+    /* So an ancestor changing --wm-size animates rather than snaps. The
+       custom property itself cannot transition, but the font-size it resolves
+       to can. */
+    transition: font-size var(--t-slow) var(--spring-wide);
+  }
+
+  .wordmark-name {
+    font-family: 'Yellowtail', 'Brush Script MT', cursive;
+    font-size: 1em;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--text);
+    /* Yellowtail sits high in its em box and carries a long descender on the
+       g. Nudging it down puts the x-height on the same optical line as the
+       seedling instead of floating above it. */
+    transform: translateY(0.08em);
+  }
+
+  /* The leaf is a hair below the script's optical centre without this, because
+     the script's visual mass sits above its baseline. */
+  .wordmark-leaf {
+    transform: translateY(-0.04em);
+  }
+
+  .wordmark:hover .wordmark-name {
+    color: var(--accent);
+  }
+
+  .wordmark-name,
+  .wordmark-leaf {
+    transition: color var(--t-base) ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wordmark,
+    .wordmark-name,
+    .wordmark-leaf {
+      transition: none;
+    }
+  }
+</style>

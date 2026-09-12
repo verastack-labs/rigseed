@@ -20,11 +20,44 @@ const accents = [
   <h2>The accent is a reskin, not a highlight.</h2>
   <p class="lede">
     Picking one does not recolour a few buttons. Every neutral surface is a mix of its base tone and
-    the accent, so the page you are reading retints with it. This page runs the same tokens as the
-    app, so this is the mechanism itself rather than a picture of it.
+    the accent, so the page you are reading retints with it. These are the app's eight accents and
+    the app's own two-stage mix, running here on a colder ground than the app uses, so this is the
+    mechanism itself rather than a picture of it.
   </p>
 
-  <div class="panel">
+  <div class="panel" data-panel>
+    {
+      /*
+      A pointer that is not the visitor's. It runs once, the first time the
+      panel is on screen, moves to two swatches and clicks them, so the row
+      reads as a control rather than as a legend. It stops the moment a real
+      pointer arrives, and it never writes the demonstrated accent to storage,
+      because the visitor did not choose it.
+    */
+    }
+    <span class="ghost" data-ghost aria-hidden="true">
+      <svg width="20" height="22" viewBox="0 0 20 22" fill="none">
+        <path
+          d="M2 1.6 17 11.2l-6.4 1.1L7.3 19 2 1.6Z"
+          fill="var(--text)"
+          stroke="var(--bg)"
+          stroke-width="1.4"
+          stroke-linejoin="round"></path>
+      </svg>
+    </span>
+    {
+      /*
+      Eight lines thrown outward from the point of contact. A sibling of the
+      pointer, not a child of it: the pointer is absolutely positioned, so it
+      is its own containing block, and a burst nested inside it would take the
+      pointer's offset once from the layout and once again from its own
+      transform.
+    */
+    }
+    <span class="burst" data-burst aria-hidden="true">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </span>
+
     <div class="controls">
       <div class="group" role="group" aria-label="Accent">
         {
@@ -80,50 +113,294 @@ const accents = [
 </section>
 
 <script>
-  // No React here on purpose. A theme change is one attribute write, and
-  // hydrating a component to perform a dataset assignment would cost more than
-  // the assignment does.
-  const root = document.documentElement
+  /*
+   * Re-run on every navigation, because the router keeps this module alive across page changes and the controls it wires are replaced underneath it.
+   *
+   * astro:page-load fires at the end of the first load and after every
+   * client-side navigation, which is the only hook needed. Listeners are hung
+   * off an AbortController that is torn down first, so navigating back and
+   * forth cannot leave a stack of handlers behind on window or document.
+   */
+  let controller: AbortController | null = null
 
-  const store = (key: string, value: string) => {
-    try {
-      localStorage.setItem('rigseed:' + key, value)
-    } catch {
-      // Storage blocked. The choice still applies for this visit, which is the
-      // part that matters. Only remembering it is lost.
+  // The demonstration is an introduction, and an introduction repeats itself
+  // once and then becomes a tic. Module scope outlives navigations under the
+  // router, so a visitor who wanders to Screens and comes back sees the panel
+  // as a control they already know rather than being shown it again.
+  let demonstrated = false
+
+  const setup = () => {
+    controller?.abort()
+    controller = new AbortController()
+    const { signal } = controller
+
+    // No React here on purpose. A theme change is one attribute write, and
+    // hydrating a component to perform a dataset assignment would cost more than
+    // the assignment does.
+    const root = document.documentElement
+
+    const store = (key: string, value: string) => {
+      try {
+        localStorage.setItem('rigseed:' + key, value)
+      } catch {
+        // Storage blocked. The choice still applies for this visit, which is the
+        // part that matters. Only remembering it is lost.
+      }
+    }
+
+    const sync = () => {
+      document.querySelectorAll<HTMLElement>('[data-accent-set]').forEach((el) => {
+        el.setAttribute('aria-pressed', String(el.dataset.accentSet === root.dataset.accent))
+      })
+      document.querySelectorAll<HTMLElement>('[data-mode-set]').forEach((el) => {
+        el.setAttribute('aria-pressed', String(el.dataset.modeSet === root.dataset.mode))
+      })
+    }
+
+    // Split out so the demonstration can change the accent without persisting
+    // it. A visitor who watched a pointer they do not control pick a colour has
+    // not chosen that colour, and writing it to storage would mean they arrive
+    // next time wearing it.
+    const applyAccent = (next: string, persist: boolean) => {
+      root.dataset.accent = next
+      if (persist) store('accent', next)
+      sync()
+    }
+
+    const swatches = Array.from(document.querySelectorAll<HTMLElement>('[data-accent-set]'))
+
+    swatches.forEach((el) => {
+      el.addEventListener('click', () => {
+        const next = el.dataset.accentSet
+        if (!next) return
+        applyAccent(next, true)
+      })
+    })
+
+    document.querySelectorAll<HTMLElement>('[data-mode-set]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const next = el.dataset.modeSet
+        if (!next) return
+        root.dataset.mode = next
+        store('mode', next)
+        sync()
+      })
+    })
+
+    sync()
+
+    /*
+     * The guided pointer.
+     *
+     * The swatch row is the one genuinely interactive thing on this page, and a
+     * row of coloured dots reads as a legend until something moves. So a pointer
+     * that is not the visitor's walks to two of them and clicks.
+     *
+     * Rules it follows. It runs once. It yields instantly to a real pointer,
+     * because a demonstration competing with the person it is for is worse than
+     * no demonstration. It does not persist what it picks. And it does not run
+     * at all under reduced motion, where a cursor flying across the screen is
+     * exactly the thing that setting is asking us not to do.
+     */
+    const panel = document.querySelector<HTMLElement>('[data-panel]')
+    const ghost = document.querySelector<HTMLElement>('[data-ghost]')
+    const burst = document.querySelector<HTMLElement>('[data-burst]')
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const coarse = window.matchMedia('(pointer: coarse)')
+
+    if (
+      !demonstrated &&
+      panel &&
+      ghost &&
+      burst &&
+      !calm.matches &&
+      !coarse.matches &&
+      swatches.length > 4
+    ) {
+      const original = root.dataset.accent ?? 'dustblue'
+      let cancelled = false
+      let timers: number[] = []
+
+      const stop = () => {
+        if (cancelled) return
+        cancelled = true
+        timers.forEach(clearTimeout)
+        timers = []
+        ghost.classList.remove('is-on')
+      }
+
+      /*
+       * Yielding to the visitor, carefully.
+       *
+       * A press or a keypress is unambiguous intent and cancels immediately,
+       * whenever it happens. Pointer movement is not: a cursor that merely
+       * happens to be resting over the panel when the page loads emits a move
+       * the instant anything reflows underneath it, and an earlier version of
+       * this cancelled the demonstration before it had drawn a single frame.
+       *
+       * So movement only counts once the demonstration is actually running, and
+       * only when the pointer has genuinely travelled. Ten pixels is further
+       * than jitter and shorter than a deliberate reach for a swatch.
+       */
+      panel.addEventListener('pointerdown', stop, { signal })
+      window.addEventListener('keydown', stop, { once: true, signal })
+
+      const watchPointer = () => {
+        let from: { x: number; y: number } | null = null
+        window.addEventListener(
+          'pointermove',
+          (e) => {
+            if (cancelled) return
+            if (!from) {
+              from = { x: e.clientX, y: e.clientY }
+              return
+            }
+            if (Math.hypot(e.clientX - from.x, e.clientY - from.y) > 10) stop()
+          },
+          { signal },
+        )
+      }
+
+      const at = (el: HTMLElement) => {
+        const p = panel.getBoundingClientRect()
+        const r = el.getBoundingClientRect()
+        return {
+          x: r.left - p.left + r.width / 2,
+          y: r.top - p.top + r.height / 2,
+        }
+      }
+
+      const after = (ms: number, run: () => void) => {
+        timers.push(window.setTimeout(run, ms) as unknown as number)
+      }
+
+      /*
+       * Travel along a sagging arc rather than a straight line.
+       *
+       * A hand moving a mouse between two points does not draw a straight line;
+       * it drops below the line of travel and comes back up, and the straight
+       * version is the single clearest tell that a cursor is scripted.
+       *
+       * The path is a quadratic bezier whose control point sits at the midpoint,
+       * pushed down by a fraction of the distance, so a short hop between
+       * neighbouring swatches barely bends and a long reach across the row
+       * visibly troughs. It is sampled into keyframes because interpolating
+       * between two or three transforms would give straight segments again,
+       * which is the thing being fixed. Sampling is uniform in t and the easing
+       * rides on the animation as a whole, so the speed curve stays correct
+       * while the shape comes from the geometry.
+       */
+      const SAMPLES = 20
+
+      let pos = { x: 0, y: 0 }
+      let flight: Animation | null = null
+
+      const moveTo = (el: HTMLElement, duration = 620) => {
+        const to = at(el)
+        const from = pos
+        pos = to
+
+        const dx = to.x - from.x
+        const dy = to.y - from.y
+        const dist = Math.hypot(dx, dy)
+        const sag = Math.min(dist * 0.3, 54)
+
+        const cx = (from.x + to.x) / 2
+        const cy = (from.y + to.y) / 2 + sag
+
+        const frames = []
+        for (let i = 0; i <= SAMPLES; i++) {
+          const t = i / SAMPLES
+          const u = 1 - t
+          const x = u * u * from.x + 2 * u * t * cx + t * t * to.x
+          const y = u * u * from.y + 2 * u * t * cy + t * t * to.y
+          frames.push({
+            offset: t,
+            transform: `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`,
+          })
+        }
+
+        flight?.cancel()
+        flight = ghost.animate(frames, {
+          duration,
+          easing: 'cubic-bezier(0.36, 0.16, 0.2, 1)',
+          fill: 'forwards',
+        })
+      }
+
+      // Placed without travelling, for the first appearance.
+      const placeAt = (el: HTMLElement) => {
+        pos = at(el)
+        flight?.cancel()
+        ghost.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`
+      }
+
+      const clickAt = (el: HTMLElement) => {
+        const key = el.dataset.accentSet
+        if (!key || cancelled) return
+        // The burst is invisible until it fires, so it is placed at the moment of
+        // contact rather than carried along the whole flight.
+        const { x, y } = at(el)
+        burst.style.transform = `translate3d(${x}px, ${y}px, 0)`
+        ghost.classList.add('is-pressed')
+        burst.classList.remove('is-firing')
+        // Reading offsetWidth restarts the animation; without it the class is
+        // removed and re-added inside one frame and nothing replays.
+        void burst.offsetWidth
+        burst.classList.add('is-firing')
+        applyAccent(key, false)
+        after(150, () => ghost.classList.remove('is-pressed'))
+      }
+
+      // Two accents far apart in hue, so the retint is obvious rather than
+      // subtle. Neither is the one the page arrived wearing.
+      const first = swatches.find((s) => s.dataset.accentSet === 'terracotta') ?? swatches[3]
+      const second = swatches.find((s) => s.dataset.accentSet === 'sage') ?? swatches[2]
+
+      const run = () => {
+        if (cancelled) return
+        watchPointer()
+        // Arrives a little up and to the left of the row, so the first move is a
+        // reach into it rather than a slide along it.
+        placeAt(swatches[0])
+        ghost.style.transform = `translate3d(${pos.x - 46}px, ${pos.y - 34}px, 0)`
+        pos = { x: pos.x - 46, y: pos.y - 34 }
+        ghost.classList.add('is-on')
+
+        after(420, () => moveTo(first, 760))
+        after(1260, () => clickAt(first))
+        after(1960, () => moveTo(second, 660))
+        after(2700, () => clickAt(second))
+        after(3480, () => {
+          ghost.classList.remove('is-on')
+          // Put back what the visitor actually had, so nothing was decided for
+          // them. Late enough that the last swatch was clearly seen to work.
+          after(500, () => applyAccent(original, false))
+        })
+      }
+
+      const watcher = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue
+            watcher.disconnect()
+            // A beat after it lands, so the pointer is not already moving while
+            // the section is still sliding into place.
+            after(500, run)
+          }
+        },
+        { threshold: 0.55 },
+      )
+      watcher.observe(panel)
+
+      // Disconnected with everything else when the page changes, so a visitor
+      // who leaves before the panel is ever reached does not leave an observer
+      // watching a node that is no longer in the document.
+      signal.addEventListener('abort', () => watcher.disconnect())
     }
   }
 
-  const sync = () => {
-    document.querySelectorAll<HTMLElement>('[data-accent-set]').forEach((el) => {
-      el.setAttribute('aria-pressed', String(el.dataset.accentSet === root.dataset.accent))
-    })
-    document.querySelectorAll<HTMLElement>('[data-mode-set]').forEach((el) => {
-      el.setAttribute('aria-pressed', String(el.dataset.modeSet === root.dataset.mode))
-    })
-  }
-
-  document.querySelectorAll<HTMLElement>('[data-accent-set]').forEach((el) => {
-    el.addEventListener('click', () => {
-      const next = el.dataset.accentSet
-      if (!next) return
-      root.dataset.accent = next
-      store('accent', next)
-      sync()
-    })
-  })
-
-  document.querySelectorAll<HTMLElement>('[data-mode-set]').forEach((el) => {
-    el.addEventListener('click', () => {
-      const next = el.dataset.modeSet
-      if (!next) return
-      root.dataset.mode = next
-      store('mode', next)
-      sync()
-    })
-  })
-
-  sync()
+  document.addEventListener('astro:page-load', setup)
 </script>
 
 <style>
@@ -137,11 +414,145 @@ const accents = [
   }
 
   .panel {
+    position: relative;
     margin-top: clamp(2rem, 5vw, 3rem);
     border: 1px solid var(--line);
     border-radius: var(--r-card);
     background: var(--surface);
     padding: clamp(1.25rem, 3vw, 2rem);
+  }
+
+  /*
+   * The guided pointer. Both it and its click ring are positioned from the
+   * panel's top left corner and moved with a transform, so neither one ever
+   * triggers layout while it travels.
+   *
+   * The arrow is drawn in the text colour with a stroke in the page colour
+   * around it, which is how a real cursor stays visible over whatever it
+   * happens to be passing over.
+   */
+  .ghost {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 3;
+    display: block;
+    opacity: 0;
+    pointer-events: none;
+    /* The tip of the arrow sits at the coordinate, not its centre, which is
+       where a real pointer's hotspot is. */
+    margin: -2px 0 0 -2px;
+    /* Only opacity here. The travel is driven by the Web Animations API,
+       because a sagging arc needs sampled keyframes and a CSS transition
+       between two transforms can only ever draw the straight line between
+       them. */
+    transition: opacity var(--t-base) ease;
+  }
+
+  .ghost.is-on {
+    opacity: 1;
+  }
+
+  .ghost svg {
+    display: block;
+    transition: transform var(--t-fast) ease;
+  }
+
+  /* The press. A real cursor does not change, so the arrow dips instead,
+     which reads as the click without inventing a cursor state. */
+  .ghost.is-pressed svg {
+    transform: translate(1px, 1px) scale(0.88);
+  }
+
+  /*
+   * The click. Eight short lines thrown outward from the point of contact,
+   * which is the gesture a tap makes in almost every interface that draws one,
+   * and it reads at a glance where a ring can be mistaken for a focus outline.
+   *
+   * The burst is a zero-size point and each line is positioned from its centre,
+   * so moving the burst is one transform and the lines never need repositioning
+   * individually.
+   */
+  .burst {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    transition: transform 0.62s cubic-bezier(0.32, 0.72, 0.3, 1);
+  }
+
+  .burst i {
+    position: absolute;
+    left: -1px;
+    top: -1px;
+    width: 2px;
+    height: 7px;
+    border-radius: 1px;
+    background: var(--accent);
+    opacity: 0;
+    transform-origin: 50% 50%;
+  }
+
+  /* Rotation per line, held as a variable so the keyframes can carry the
+     travel without eight near-identical copies of it. */
+  .burst i:nth-child(1) {
+    --a: 0deg;
+  }
+  .burst i:nth-child(2) {
+    --a: 45deg;
+  }
+  .burst i:nth-child(3) {
+    --a: 90deg;
+  }
+  .burst i:nth-child(4) {
+    --a: 135deg;
+  }
+  .burst i:nth-child(5) {
+    --a: 180deg;
+  }
+  .burst i:nth-child(6) {
+    --a: 225deg;
+  }
+  .burst i:nth-child(7) {
+    --a: 270deg;
+  }
+  .burst i:nth-child(8) {
+    --a: 315deg;
+  }
+
+  .burst.is-firing i {
+    animation: spoke 0.44s cubic-bezier(0.18, 0.72, 0.32, 1) forwards;
+  }
+
+  /* The diagonals start a touch later, which stops the eight reading as one
+     expanding octagon and makes it read as a scatter. */
+  .burst.is-firing i:nth-child(2n) {
+    animation-delay: 0.04s;
+  }
+
+  @keyframes spoke {
+    from {
+      opacity: 0.95;
+      transform: rotate(var(--a)) translateY(-5px) scaleY(0.55);
+    }
+    to {
+      opacity: 0;
+      transform: rotate(var(--a)) translateY(-17px) scaleY(1.15);
+    }
+  }
+
+  /* It never runs under either of these, but the styles are guarded anyway so
+     a stuck class cannot leave something animating. */
+  @media (prefers-reduced-motion: reduce) {
+    .ghost,
+    .ghost svg,
+    .burst,
+    .burst i {
+      transition: none;
+      animation: none;
+    }
   }
 
   .controls {

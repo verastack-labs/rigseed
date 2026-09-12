@@ -1,0 +1,89 @@
+---
+const base = import.meta.env.BASE_URL
+
+interface Props {
+  version: string
+}
+const { version } = Astro.props
+---
+
+{
+  /*
+  The bookend. The hero opened on an accent aura and the page closes on one,
+  which is what keeps a long scroll feeling like one document rather than a
+  stack of sections. The warning is here rather than buried, but it is one
+  line: the Download page carries it properly.
+*/
+}
+<section class="close">
+  <div class="wrap inner">
+    <h2>It is one download and no account.</h2>
+    <p class="lede">
+      Free and open source, under Apache 2.0. Every file is published with its SHA-256 so you can
+      check what you got before you run it.
+    </p>
+
+    <div class="actions">
+      <a class="btn primary" href={`${base}/download/`}>Download {version}</a>
+      <a class="btn" href="https://github.com/verastack-labs/rigseed-app">Read the source</a>
+    </div>
+
+    <p class="caveat">
+      Builds are not code signed yet, so Windows and macOS will both warn you on first open.
+      <a href={`${base}/download/`}>What that looks like and why</a>.
+    </p>
+  </div>
+</section>
+
+<style>
+  .close {
+    position: relative;
+    overflow: hidden;
+    border-top: 1px solid var(--line);
+  }
+
+  .close::before {
+    content: '';
+    position: absolute;
+    inset: auto 0 -34rem;
+    height: 48rem;
+    background: radial-gradient(
+      42% 40% at 50% 50%,
+      color-mix(in srgb, var(--accent) 14%, transparent),
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  h2 {
+    max-width: 18ch;
+  }
+
+  .lede {
+    margin-top: 1.25rem;
+    max-width: 52ch;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 2.25rem;
+  }
+
+  .caveat {
+    margin-top: 1.75rem;
+    max-width: 46ch;
+    color: var(--text-dimmer);
+    font-size: 0.8125rem;
+  }
+</style>

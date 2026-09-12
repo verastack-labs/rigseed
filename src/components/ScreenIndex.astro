@@ -1,0 +1,172 @@
+---
+/*
+ * Every screen the app ships, with its route and the endpoints it drives.
+ * Taken from the screen specifications rather than written for the page, so
+ * the routes and namespaces are the real ones.
+ *
+ * No screenshots here on purpose. Five of the nine are captured in the tour
+ * above; mocking up the other four to make a tidy grid would put pictures of
+ * things that do not exist on a page whose whole argument is that it shows the
+ * real thing.
+ */
+const screens = [
+  {
+    name: 'Transfers',
+    route: '/',
+    does: 'The list, with status filters, categories, tags and a live speed graph.',
+    api: 'sync/maindata',
+  },
+  {
+    name: 'Torrent detail',
+    route: '/torrent/:hash',
+    does: 'Files, trackers, peers and properties for one torrent, under a tab strip.',
+    api: 'torrents/properties · torrents/files · torrents/trackers · sync/torrentPeers',
+  },
+  {
+    name: 'Add torrent',
+    route: 'modal',
+    does: 'File or magnet, with save path, category and start behaviour before it begins.',
+    api: 'torrents/add · torrents/categories',
+  },
+  {
+    name: 'Search',
+    route: '/search',
+    does: 'Queries through installed plugins, results arriving per engine as each answers.',
+    api: 'search/start · search/results · search/plugins',
+  },
+  {
+    name: 'RSS',
+    route: '/rss',
+    does: 'Feeds on the left, items or the matching rule editor on the right.',
+    api: 'rss/items · rss/setRule · rss/addFeed',
+  },
+  {
+    name: 'Categories and tags',
+    route: '/categories',
+    does: 'Categories carry a save path and can manage it; tags are free-form labels.',
+    api: 'torrents/categories · torrents/tags',
+  },
+  {
+    name: 'Connections',
+    route: 'from Transfers',
+    does: 'Every instance the app can drive, bundled or reached over the network.',
+    api: 'app/version · transfer/info · auth/login',
+  },
+  {
+    name: 'Logs',
+    route: '/logs',
+    does: 'Everything the daemon has reported since it started, newest first.',
+    api: 'log/main · log/peers',
+  },
+  {
+    name: 'Settings',
+    route: '/settings',
+    does: 'Two panes, with each preference sitting next to what it actually changes.',
+    api: 'app/preferences · app/setPreferences',
+  },
+]
+---
+
+<section class="wrap" id="index">
+  <p class="eyebrow">The full set</p>
+  <h2>All nine, and what each one talks to.</h2>
+  <p class="lede">
+    Five are captured above. The rest are listed rather than mocked up, because a page arguing that
+    it shows the real thing should not illustrate itself with drawings.
+  </p>
+
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Screen</th>
+          <th scope="col">Route</th>
+          <th scope="col">What it does</th>
+          <th scope="col">Endpoints</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          screens.map((s) => (
+            <tr>
+              <th scope="row">{s.name}</th>
+              <td class="mono route">{s.route}</td>
+              <td class="does">{s.does}</td>
+              <td class="mono api">{s.api}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<style>
+  h2 {
+    max-width: 20ch;
+  }
+
+  .lede {
+    margin-top: 1rem;
+    max-width: 56ch;
+  }
+
+  /* The table is wide and the page must never scroll sideways because of it. */
+  .scroller {
+    overflow-x: auto;
+    margin-top: clamp(2rem, 5vw, 3rem);
+    border-top: 1px solid var(--line);
+  }
+
+  table {
+    width: 100%;
+    min-width: 44rem;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  th,
+  td {
+    padding: 0.875rem 1.25rem 0.875rem 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    font-weight: 400;
+  }
+
+  thead th {
+    padding-block: 0.75rem;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.625rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dimmer);
+  }
+
+  tbody th {
+    color: var(--text);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .route {
+    color: var(--accent);
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
+  .does {
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    min-width: 20rem;
+  }
+
+  .api {
+    color: var(--text-dimmer);
+    font-size: 0.75rem;
+  }
+
+  tbody tr:last-child th,
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+</style>

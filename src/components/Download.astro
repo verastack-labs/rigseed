@@ -1,4 +1,6 @@
 ---
+import Spotlight from './Spotlight.astro'
+
 interface Props {
   version: string
 }
@@ -55,17 +57,17 @@ const platforms = [
 
 <section id="download" class="wrap">
   <p class="eyebrow">Download</p>
-  <h2>rigseed {tag}</h2>
+  <h1>rigseed {tag}</h1>
   <p class="lede">
     qBittorrent is bundled, so there is nothing else to install. The first launch generates its own
     credentials and starts the daemon on a profile of its own, which never touches a qBittorrent you
     already run.
   </p>
 
-  <div class="grid">
+  <div class="grid" data-spotlight>
     {
       platforms.map((p) => (
-        <article class="card">
+        <article class="card" data-spot>
           <header>
             <h3>{p.name}</h3>
             <span class="detail mono">{p.detail}</span>
@@ -110,6 +112,8 @@ const platforms = [
     is what its licence requires and why it is offered from the same page as the binary.
     <a href={`${repo}/releases/latest`}>See all files on the release</a>.
   </p>
+
+  <Spotlight />
 </section>
 
 <style>
@@ -118,8 +122,10 @@ const platforms = [
     max-width: 52ch;
   }
 
-  h2 {
-    font-family: 'Inter Variable', sans-serif;
+  /* The page's own title, so it takes h1 size from base.css but the
+     tighter measure a two-word heading wants. */
+  h1 {
+    max-width: 14ch;
   }
 
   .grid {

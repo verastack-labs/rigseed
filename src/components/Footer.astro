@@ -1,21 +1,26 @@
 ---
-import Mark from './Mark.astro'
+import Wordmark from './Wordmark.astro'
 
 const repo = 'https://github.com/verastack-labs/rigseed-app'
+const base = import.meta.env.BASE_URL
 const year = new Date().getFullYear()
 ---
 
 <footer>
   <div class="wrap inner">
     <div class="brand-col">
-      <a class="brand" href={import.meta.env.BASE_URL}>
-        <Mark size={20} />
-        <span class="brand-name">rigseed</span>
-      </a>
+      <Wordmark size={1.4} />
       <p class="tag">A desktop client for qBittorrent, by Verastack Labs.</p>
     </div>
 
     <nav aria-label="Footer">
+      <div class="col">
+        <h2 class="eyebrow">Site</h2>
+        <a href={`${base}/`}>Home</a>
+        <a href={`${base}/screens/`}>Screens</a>
+        <a href={`${base}/download/`}>Download</a>
+      </div>
+
       <div class="col">
         <h2 class="eyebrow">Project</h2>
         <a href={repo}>Source</a>
@@ -72,23 +77,9 @@ const year = new Date().getFullYear()
 
   @media (min-width: 48rem) {
     .inner {
-      grid-template-columns: 1fr 1.6fr;
+      grid-template-columns: 1fr 2.1fr;
       align-items: start;
     }
-  }
-
-  .brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--accent);
-    text-decoration: none;
-  }
-
-  .brand-name {
-    font-size: 0.9375rem;
-    font-weight: 700;
-    color: var(--text);
   }
 
   .tag {

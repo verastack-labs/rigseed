@@ -1,115 +1,207 @@
 ---
-import Mark from './Mark.astro'
+import Wordmark from './Wordmark.astro'
 
 const base = import.meta.env.BASE_URL
 
-// Only in-page links take part in scroll spy. Source leaves the site, so it
-// can never be the active section and must not be a target the indicator can
-// slide to.
-const sections = [
-  { id: 'screens', label: 'Screens' },
-  { id: 'theming', label: 'Theming' },
-  { id: 'download', label: 'Download' },
+// Source leaves the site, so it can never be the current page and must not be
+// a target the indicator can rest on.
+const pages = [
+  { href: `${base}/`, label: 'Home' },
+  { href: `${base}/screens/`, label: 'Screens' },
+  { href: `${base}/download/`, label: 'Download' },
 ]
+
+// Astro emits trailing slashes, but a link typed without one still resolves,
+// so both forms have to count as the same page.
+const here = Astro.url.pathname.replace(/\/+$/, '') || base
+const isCurrent = (href: string) => href.replace(/\/+$/, '') === here
+
+// The nav grows a Download button on scroll, so on the download page itself it
+// would be offering the page you are on.
+const onDownload = isCurrent(`${base}/download/`)
 ---
 
-<header class="nav" data-nav>
-  <div class="wrap bar">
-    <a class="brand" href={base}>
-      <Mark size={22} />
-      <span class="brand-name">rigseed</span>
-    </a>
+{
+  /*
+  Reading progress, pinned to the top edge of the viewport rather than to the
+  bar. The bar becomes a rounded pill on scroll, and a 2px line clipped by a
+  999px radius survives as a sliver in the middle of the pill, which is not a
+  progress bar. Up here it stays full width and legible in both states.
+*/
+}
+<div class="progress" aria-hidden="true" transition:persist="progress">
+  <span data-progress></span>
+</div>
 
-    <nav class="links" aria-label="Primary" data-links>
+<header class="nav" data-nav transition:persist="nav">
+  <div class="rail">
+    {
+      /*
+      The shell contracts. At the top of a page it is the full content width,
+      transparent, part of the page. Once content starts passing underneath it
+      draws itself in: narrower, bordered, blurred, lifted, and it grows the
+      primary action at the moment the hero's copy of that action leaves the
+      screen. The bar earns the space it takes by taking it only when it is
+      carrying something.
+    */
+    }
+    <div class="shell" data-shell>
+      <span class="mark"><Wordmark /></span>
+
+      <nav class="links" aria-label="Primary" data-links>
+        {
+          /*
+          The indicator rests under the current page and follows hover or
+          focus, then returns. It is the app's own View control, which slides
+          between Easy, Grid and List exactly this way; borrowed from the
+          product rather than from a trend.
+        */
+        }
+        <span class="indicator" data-indicator aria-hidden="true"></span>
+        {
+          pages.map((p) => (
+            <a
+              href={p.href}
+              data-page
+              class:list={{ 'is-current': isCurrent(p.href) }}
+              aria-current={isCurrent(p.href) ? 'page' : undefined}
+            >
+              {p.label}
+            </a>
+          ))
+        }
+        <a class="external" href="https://github.com/verastack-labs/rigseed-app">
+          Source
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M7 17 17 7M9 7h8v8"></path>
+          </svg>
+        </a>
+      </nav>
+
       {
         /*
-        The indicator slides between links the way the app's View control
-        slides between Easy, Grid and List. Borrowed from the product rather
-        than from a trend, so the site and the app read as one thing.
+        Always rendered, then hidden on the download page by script. A
+        persisted node keeps whichever markup it was born with, so a bar first
+        rendered on the download page would have no button to show anywhere
+        else for the rest of the session.
       */
       }
-      <span class="indicator" data-indicator aria-hidden="true"></span>
-      {
-        sections.map((s) => (
-          <a href={`#${s.id}`} data-spy={s.id}>
-            {s.label}
-          </a>
-        ))
-      }
-      <a class="external" href="https://github.com/verastack-labs/rigseed-app">Source</a>
-    </nav>
+      <div class="cta-slot" data-cta hidden={isCurrent(`${base}/download/`)}>
+        <a class="cta" href={`${base}/download/`} tabindex="-1" data-cta-link> Download </a>
+      </div>
+    </div>
   </div>
-
-  {
-    /*
-    Scroll position as a progress bar, in the accent, the same shape the app
-    draws for a downloading torrent. It is the honest version of the
-    scroll-as-navigation idea: it says how far through you are and nothing else.
-  */
-  }
-  <div class="progress" aria-hidden="true"><span data-progress></span></div>
 </header>
 
 <script>
-  const nav = document.querySelector<HTMLElement>('[data-nav]')
-  const links = document.querySelector<HTMLElement>('[data-links]')
-  const indicator = document.querySelector<HTMLElement>('[data-indicator]')
-  const progress = document.querySelector<HTMLElement>('[data-progress]')
+  /*
+   * The bar is a persisted node: transition:persist keeps this exact element
+   * alive across navigations rather than rebuilding it, so its scroll state,
+   * its measured indicator and its listeners all survive a page change. That
+   * also means this module runs once for the whole session, and everything
+   * that depends on which page we are on has to be recomputed when the page
+   * changes rather than read at parse time.
+   */
+  let controller: AbortController | null = null
 
-  if (nav && links && indicator && progress) {
-    // The bar never hides. It carries a progress line and a section
-    // indicator, and both are only worth drawing if they are on screen; a
-    // progress bar you have to scroll up to consult is decoration.
-    //
-    // Low, so the surface arrives as soon as content starts passing under the
-    // bar rather than after a deliberate scroll.
-    const FLOOR = 24
+  const setup = () => {
+    // Listeners are torn down and rebuilt on every navigation. Without this
+    // the persisted node would accumulate one more scroll handler per page the
+    // visitor ever opened.
+    controller?.abort()
+    controller = new AbortController()
+    const { signal } = controller
 
-    const spies = Array.from(links.querySelectorAll<HTMLAnchorElement>('[data-spy]'))
-    let ticking = false
-    let active: HTMLAnchorElement | null = null
+    const nav = document.querySelector<HTMLElement>('[data-nav]')
+    const links = document.querySelector<HTMLElement>('[data-links]')
+    const indicator = document.querySelector<HTMLElement>('[data-indicator]')
+    const progress = document.querySelector<HTMLElement>('[data-progress]')
+    const ctaLink = document.querySelector<HTMLAnchorElement>('[data-cta-link]')
+    if (!nav || !links || !indicator || !progress) return
 
-    const moveIndicator = (to: HTMLAnchorElement | null) => {
-      if (to === active) return
-      active = to
-      spies.forEach((a) => a.classList.toggle('is-active', a === to))
+    const pageLinks = Array.from(links.querySelectorAll<HTMLAnchorElement>('[data-page]'))
+
+    // Which page we are on, recomputed from the address rather than trusted
+    // from the markup, because the markup is the one this node was first
+    // rendered with and never updates itself.
+    const here = location.pathname.replace(/\/+$/, '')
+    let home: HTMLAnchorElement | null = null
+    for (const a of pageLinks) {
+      const mine = new URL(a.href).pathname.replace(/\/+$/, '') === here
+      a.classList.toggle('is-current', mine)
+      if (mine) {
+        a.setAttribute('aria-current', 'page')
+        home = a
+      } else {
+        a.removeAttribute('aria-current')
+      }
+    }
+
+    // The button offers the download page, so on the download page it would be
+    // offering the page you are already reading.
+    const onDownload = home?.getAttribute('href')?.includes('/download') ?? false
+    const slot = ctaLink?.parentElement
+    if (slot) slot.hidden = onDownload
+
+    // Two thresholds rather than one, so the bar does not flicker between
+    // states when a trackpad leaves the page resting on the boundary.
+    const ON = 32
+    const OFF = 12
+    let stuck = nav.classList.contains('is-stuck')
+
+    // Measured from the element rather than assumed from an index, so the
+    // indicator stays correct when labels change width or the webfont loads
+    // late and reflows them.
+    const moveTo = (to: HTMLAnchorElement | null) => {
       if (!to) {
         indicator.style.opacity = '0'
         return
       }
-      // Measured from the element rather than assumed from an index, so the
-      // indicator stays correct when the labels change width or the font loads
-      // late and reflows them.
       indicator.style.opacity = '1'
       indicator.style.transform = `translateX(${to.offsetLeft}px)`
       indicator.style.width = `${to.offsetWidth}px`
     }
 
-    // Which section owns the viewport. The one whose top is nearest above the
-    // reading line wins, which behaves correctly for sections shorter than the
-    // viewport where an intersection ratio would flicker between two.
-    const currentSection = () => {
-      const line = window.scrollY + window.innerHeight * 0.35
-      let found: HTMLAnchorElement | null = null
-      for (const a of spies) {
-        const id = a.dataset.spy
-        const el = id ? document.getElementById(id) : null
-        if (el && el.offsetTop <= line) found = a
-      }
-      return found
-    }
+    pageLinks.forEach((a) => {
+      a.addEventListener('mouseenter', () => moveTo(a), { signal })
+      a.addEventListener('focus', () => moveTo(a), { signal })
+    })
+    links.addEventListener('mouseleave', () => moveTo(home), { signal })
+    links.addEventListener(
+      'focusout',
+      (e) => {
+        if (!links.contains(e.relatedTarget as Node)) moveTo(home)
+      },
+      { signal },
+    )
 
+    let ticking = false
     const update = () => {
       const y = window.scrollY
       const max = document.documentElement.scrollHeight - window.innerHeight
 
-      nav.classList.toggle('is-stuck', y > FLOOR)
-
-      // Guard the divide: a page shorter than the viewport has max 0, and
-      // 0/0 is NaN, which silently leaves the bar at whatever it last was.
+      // Guard the divide: a page shorter than the viewport has max 0, and 0/0
+      // is NaN, which silently leaves the bar at whatever it last was.
       progress.style.transform = `scaleX(${max > 0 ? Math.min(y / max, 1) : 0})`
 
-      moveIndicator(currentSection())
+      const next = stuck ? y > OFF : y > ON
+      if (next !== stuck) {
+        stuck = next
+        nav.classList.toggle('is-stuck', stuck)
+      }
+      // A control with no width is not a tab stop. Set every pass rather than
+      // only on the transition, because a navigation can land mid-scroll.
+      if (ctaLink) ctaLink.tabIndex = stuck && !onDownload ? 0 : -1
 
       ticking = false
     }
@@ -121,66 +213,119 @@ const sections = [
         ticking = true
         requestAnimationFrame(update)
       },
-      { passive: true },
+      { passive: true, signal },
     )
 
-    // Labels can change width when the webfont swaps in, which would leave the
-    // indicator sized for the fallback.
-    window.addEventListener('resize', () => {
-      const held = active
-      active = null
-      moveIndicator(held)
-    })
+    window.addEventListener(
+      'resize',
+      () => {
+        moveTo(home)
+        update()
+      },
+      { signal },
+    )
 
+    // The webfont swap changes label widths, so the first measurement can be
+    // for the fallback. Re-measure once the real faces are in.
+    if (document.fonts?.ready) void document.fonts.ready.then(() => moveTo(home))
+
+    moveTo(home)
     update()
   }
+
+  // Fires at the end of the first load and after every navigation, so this is
+  // the one hook needed rather than an immediate call plus a listener.
+  document.addEventListener('astro:page-load', setup)
 </script>
 
 <style>
+  .progress {
+    position: fixed;
+    inset: 0 0 auto;
+    height: 2px;
+    z-index: 12;
+    pointer-events: none;
+  }
+
+  .progress span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+  }
+
   .nav {
     position: sticky;
     top: 0;
     z-index: 10;
-    transition:
-      background-color var(--t-base) ease,
-      border-color var(--t-base) ease;
-    border-bottom: 1px solid transparent;
   }
 
-  .is-stuck {
-    background: color-mix(in srgb, var(--bg) 86%, transparent);
-    border-bottom-color: var(--line);
-    backdrop-filter: blur(10px);
+  .rail {
+    padding: 0.5rem 1.25rem;
   }
 
-  .bar {
+  .shell {
+    position: relative;
+    width: 100%;
+    max-width: 68rem;
+    margin-inline: auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding-block: 0.875rem;
+    /* No inline padding at rest. The bar is part of the page then, so the
+       wordmark has to sit on the same left edge as the headline underneath it;
+       0.75rem of padding here put it 12.8px inside the content column, which
+       is the kind of thing you cannot unsee once you have measured it. The
+       padding arrives with the pill, as the pill's own inset. */
+    padding: 0.45rem 0;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    transition:
+      max-width var(--t-slow) var(--spring-wide),
+      padding var(--t-slow) var(--spring-wide),
+      background-color var(--t-base) ease,
+      border-color var(--t-base) ease,
+      box-shadow var(--t-base) ease;
   }
 
-  .brand {
+  /*
+   * The engaged state. Glass rather than a flat panel: the blurred ground, a
+   * 1px inset highlight along the top edge where a real lens would catch the
+   * light, and a shadow that sits under it rather than around it. The
+   * highlight is what stops it reading as a blurred rectangle.
+   */
+  .is-stuck .shell {
+    max-width: 54rem;
+    padding-inline: 0.7rem 0.5rem;
+    background: color-mix(in srgb, var(--surface) 72%, transparent);
+    border-color: var(--line);
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    box-shadow:
+      0 1px 0 color-mix(in srgb, var(--text) 9%, transparent) inset,
+      0 10px 30px -12px color-mix(in srgb, var(--shadow-color, #000) 90%, transparent);
+  }
+
+  .mark {
+    flex: none;
     display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--accent);
-    text-decoration: none;
+    --wm-size: 1.45rem;
   }
 
-  .brand-name {
-    font-size: 0.9375rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: var(--text);
+  /* The wordmark gives up a little size to the button it is now sharing the
+     bar with. The transition lives on the wordmark itself, so setting the
+     variable here is enough to animate it. */
+  .is-stuck .mark {
+    --wm-size: 1.25rem;
   }
 
   .links {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.15rem;
     font-size: 0.9375rem;
   }
 
@@ -195,12 +340,19 @@ const sections = [
   }
 
   .links a:hover,
-  .links a.is-active {
+  .links a.is-current {
     color: var(--text);
   }
 
   .external {
-    margin-left: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: 0.4rem;
+  }
+
+  .external svg {
+    opacity: 0.55;
   }
 
   /* The segmented-control indicator. Spring on travel, plain ease on opacity,
@@ -221,38 +373,125 @@ const sections = [
       opacity var(--t-fast) ease;
   }
 
-  .progress {
-    position: absolute;
-    inset: auto 0 -1px;
-    height: 2px;
-    overflow: hidden;
+  /*
+   * The button reveals by growing its own track from nothing, which is what
+   * keeps the links from jumping sideways when it arrives. A 0fr to 1fr grid
+   * animates a width the content decides, without anybody hard-coding it.
+   */
+  /* display: grid beats the hidden attribute's default, and the bar hides this
+     on the download page by setting exactly that attribute. */
+  .cta-slot[hidden] {
+    display: none;
   }
 
-  .progress span {
-    display: block;
-    height: 100%;
+  .cta-slot {
+    display: grid;
+    grid-template-columns: 0fr;
+    transition: grid-template-columns var(--t-slow) var(--spring-wide);
+  }
+
+  .is-stuck .cta-slot {
+    grid-template-columns: 1fr;
+  }
+
+  .cta {
+    overflow: hidden;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding-block: 0.4rem;
+    border-radius: 999px;
     background: var(--accent);
-    transform-origin: 0 50%;
-    transform: scaleX(0);
+    color: var(--accent-on);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    opacity: 0;
+    transition:
+      opacity var(--t-base) ease,
+      padding-inline var(--t-slow) var(--spring-wide),
+      background-color var(--t-fast) ease;
+    padding-inline: 0;
+  }
+
+  .is-stuck .cta {
+    opacity: 1;
+    padding-inline: 1rem;
+  }
+
+  .is-stuck .cta:hover {
+    background: color-mix(in srgb, var(--accent) 88%, var(--text));
   }
 
   /*
-   * Under reduced motion nothing slides. The indicator still moves and the
-   * progress line still fills, because both carry information, but they change
-   * state rather than animate between them.
+   * Under reduced motion the bar still changes state, because the state
+   * carries information: it says content has scrolled past and the action is
+   * available. It changes instantly rather than travelling there.
    */
   @media (prefers-reduced-motion: reduce) {
-    .nav,
-    .indicator {
+    .shell,
+    .mark,
+    .indicator,
+    .cta-slot,
+    .cta {
       transition: none;
     }
   }
 
+  @media (max-width: 52rem) {
+    /* The button is the first thing to go. Download is already one of the
+       three links at this width, so the bar would be offering it twice. */
+    .cta-slot {
+      display: none;
+    }
+  }
+
   @media (max-width: 46rem) {
-    /* The indicator has nothing to slide between once the in-page links are
-       gone, so it goes with them rather than sitting under a lone link. */
-    .links a[data-spy],
+    /* The arrow goes before the label does. */
+    .external svg {
+      display: none;
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .rail {
+      padding-inline: 0.75rem;
+    }
+
+    /* Nothing left to rest under once the labels are this tight. */
     .indicator {
+      display: none;
+    }
+
+    /*
+     * Source leaves the site, and at this width it was the link pushing the
+     * row past the edge and getting itself clipped. The three pages are what a
+     * nav is for; Source keeps its place in the footer, where nothing is
+     * competing for the space.
+     */
+    .external {
+      display: none;
+    }
+
+    .mark {
+      --wm-size: 1.2rem;
+    }
+
+    .links {
+      font-size: 0.875rem;
+      gap: 0;
+    }
+
+    .links a {
+      padding-inline: 0.5rem;
+    }
+  }
+
+  @media (max-width: 22rem) {
+    /* The wordmark is the home link, so the label is saying it twice. */
+    .links a[href$='/rigseed/'] {
       display: none;
     }
   }

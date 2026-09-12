@@ -1,0 +1,29 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/Nav.astro'
+import PageHead from '../components/PageHead.astro'
+import ScreenTour from '../components/ScreenTour.astro'
+import ScreenIndex from '../components/ScreenIndex.astro'
+import Close from '../components/Close.astro'
+import Footer from '../components/Footer.astro'
+
+const version = '0.1.1'
+---
+
+<Base
+  title="Every screen in rigseed"
+  description="The nine screens rigseed ships, what each one does, and the qBittorrent Web API endpoints it drives. Five captured from the running app."
+  version={version}
+  releaseUrl="https://github.com/verastack-labs/rigseed-app/releases/latest"
+>
+  <Nav />
+  <PageHead
+    eyebrow="Screens"
+    title="Nine screens, drawn before they were built."
+    lede="Every one states the endpoints it exercises in a small mono line. That is deliberate: it doubles as documentation, and a screen that cannot name its endpoint usually does not know what it is doing."
+  />
+  <ScreenTour />
+  <ScreenIndex />
+  <Close version={`v${version}`} />
+  <Footer />
+</Base>

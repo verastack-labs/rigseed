@@ -2,8 +2,16 @@
 import '@fontsource-variable/inter'
 import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
+// The one characterful face in the system, and it is spent entirely on the
+// wordmark. Everything else stays Inter and JetBrains Mono, which is what the
+// app uses; a second display face would make the site a different product.
+import '@fontsource/yellowtail'
 import '../styles/tokens.css'
+// After tokens, because it overrides the base neutrals those tokens mix the
+// accent into. Before base.css, which only consumes the result.
+import '../styles/site-theme.css'
 import '../styles/base.css'
+import { ClientRouter } from 'astro:transitions'
 import StructuredData from '../components/StructuredData.astro'
 
 interface Props {
@@ -44,8 +52,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site).toString()
 
     <!-- The chrome around the page follows the theme, so the browser's own UI
          does not sit at a different brightness from the page under it. -->
-    <meta name="theme-color" content="#191a1c" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f6f6f5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#05080e" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f4f6f9" media="(prefers-color-scheme: light)" />
 
     <link rel="icon" href={`${import.meta.env.BASE_URL}/favicon.svg`} type="image/svg+xml" />
 
@@ -57,16 +65,86 @@ const canonical = new URL(Astro.url.pathname, Astro.site).toString()
       preference would be a poor trade.
     -->
     <script is:inline>
-      try {
-        const mode = localStorage.getItem('rigseed:mode')
-        const accent = localStorage.getItem('rigseed:accent')
-        if (mode) document.documentElement.dataset.mode = mode
-        if (accent) document.documentElement.dataset.accent = accent
-      } catch {}
+      const applyTheme = () => {
+        try {
+          const mode = localStorage.getItem('rigseed:mode')
+          const accent = localStorage.getItem('rigseed:accent')
+          if (mode) document.documentElement.dataset.mode = mode
+          if (accent) document.documentElement.dataset.accent = accent
+        } catch {}
+      }
+      applyTheme()
+
+      /*
+       * The wordmark waits for its own face.
+       *
+       * Yellowtail is loaded with font-display: swap, so the name paints in
+       * whatever cursive the machine has and then jumps to the real face a
+       * moment later. On a word this distinctive, at this size, that jump is
+       * the first thing a visitor sees the site do.
+       *
+       * So the name is held invisible, not absent: it still takes its space,
+       * so nothing around it moves, and it simply arrives once. If the font
+       * fails or is slow, it is revealed anyway after a second and a half,
+       * because a permanently invisible wordmark is a worse outcome than a
+       * substituted one.
+       */
+      var FONT_READY = 'wordmark-ready'
+      var fontReady = false
+      var showWordmark = function () {
+        fontReady = true
+        document.documentElement.classList.add(FONT_READY)
+      }
+
+      if (document.fonts && document.fonts.load) {
+        document.fonts.load('1rem Yellowtail').then(showWordmark).catch(showWordmark)
+        setTimeout(showWordmark, 1500)
+      } else {
+        showWordmark()
+      }
+
+      // The router copies the incoming document's html attributes over the
+      // live ones, which includes data-mode, data-accent and this class, so a
+      // visitor who picked an accent would lose it the moment they opened
+      // another page and the wordmark would hide itself again. after-swap runs
+      // with the new DOM in place and before it is painted.
+      document.addEventListener('astro:after-swap', function () {
+        applyTheme()
+        if (fontReady) document.documentElement.classList.add(FONT_READY)
+      })
     </script>
+    <!--
+      Turns the site from a set of documents into one shell that swaps its
+      contents. Without it every navigation is a full document load: the nav is
+      rebuilt, its scroll state is lost, and the page goes blank in between.
+      With it, anything marked transition:persist survives the swap as the same
+      live DOM node, which is what the nav does.
+    -->
+    <ClientRouter />
     <StructuredData version={version} releaseUrl={releaseUrl} />
   </head>
   <body>
+    <!--
+      DIRECTION CONTRACT
+
+      THESIS: a front end is only worth switching to if you can watch it work,
+      so the running transfer list is the first viewport at full width; this
+      page refuses the three-icon feature grid above the fold.
+      OWN-WORLD: a cold near-navy ground with bright text, the app's own eight
+      accents tinting every surface through the app's own two-stage mix;
+      hairline rules rather than cards, mono for every number, and the Yellowtail
+      script reserved for the name itself, in the wordmark and in the headline.
+      STORY: this is qBittorrent's own engine behind a new interface, there is
+      nothing to install first, and the download is one click from here.
+      FIRST VIEWPORT: a contracting glass bar, a status pill, a 19ch headline
+      opening on the name in script, a 52ch lede, paired buttons with Download
+      primary, then the whole transfers surface at 62rem, laid back 14 degrees
+      on an accent aura and standing up as the reader scrolls.
+      FORM: the category standard played straight at the Linear and Raycast
+      craft bar, taken as the standing exit over roll 33e09191 index 6.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with
+      the finish review, the verdict, and DESIGN.md
+    -->
     <slot />
   </body>
 </html>
