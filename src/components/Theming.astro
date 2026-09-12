@@ -25,7 +25,36 @@ const accents = [
     mechanism itself rather than a picture of it.
   </p>
 
-  <div class="panel">
+  <div class="panel" data-panel>
+    {
+      /*
+      A pointer that is not the visitor's. It runs once, the first time the
+      panel is on screen, moves to two swatches and clicks them, so the row
+      reads as a control rather than as a legend. It stops the moment a real
+      pointer arrives, and it never writes the demonstrated accent to storage,
+      because the visitor did not choose it.
+    */
+    }
+    <span class="ghost" data-ghost aria-hidden="true">
+      <svg width="20" height="22" viewBox="0 0 20 22" fill="none">
+        <path
+          d="M2 1.6 17 11.2l-6.4 1.1L7.3 19 2 1.6Z"
+          fill="var(--text)"
+          stroke="var(--bg)"
+          stroke-width="1.4"
+          stroke-linejoin="round"></path>
+      </svg>
+    </span>
+    {
+      /*
+      A sibling of the pointer, not a child of it. The pointer is absolutely
+      positioned, so it is its own containing block, and a ring nested inside
+      it would take the pointer's offset once from the layout and once again
+      from its own transform.
+    */
+    }
+    <span class="ping" data-ping aria-hidden="true"></span>
+
     <div class="controls">
       <div class="group" role="group" aria-label="Accent">
         {
@@ -104,13 +133,23 @@ const accents = [
     })
   }
 
-  document.querySelectorAll<HTMLElement>('[data-accent-set]').forEach((el) => {
+  // Split out so the demonstration can change the accent without persisting
+  // it. A visitor who watched a pointer they do not control pick a colour has
+  // not chosen that colour, and writing it to storage would mean they arrive
+  // next time wearing it.
+  const applyAccent = (next: string, persist: boolean) => {
+    root.dataset.accent = next
+    if (persist) store('accent', next)
+    sync()
+  }
+
+  const swatches = Array.from(document.querySelectorAll<HTMLElement>('[data-accent-set]'))
+
+  swatches.forEach((el) => {
     el.addEventListener('click', () => {
       const next = el.dataset.accentSet
       if (!next) return
-      root.dataset.accent = next
-      store('accent', next)
-      sync()
+      applyAccent(next, true)
     })
   })
 
@@ -125,6 +164,113 @@ const accents = [
   })
 
   sync()
+
+  /*
+   * The guided pointer.
+   *
+   * The swatch row is the one genuinely interactive thing on this page, and a
+   * row of coloured dots reads as a legend until something moves. So a pointer
+   * that is not the visitor's walks to two of them and clicks.
+   *
+   * Rules it follows. It runs once. It yields instantly to a real pointer,
+   * because a demonstration competing with the person it is for is worse than
+   * no demonstration. It does not persist what it picks. And it does not run
+   * at all under reduced motion, where a cursor flying across the screen is
+   * exactly the thing that setting is asking us not to do.
+   */
+  const panel = document.querySelector<HTMLElement>('[data-panel]')
+  const ghost = document.querySelector<HTMLElement>('[data-ghost]')
+  const ping = document.querySelector<HTMLElement>('[data-ping]')
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
+  const coarse = window.matchMedia('(pointer: coarse)')
+
+  if (panel && ghost && ping && !calm.matches && !coarse.matches && swatches.length > 4) {
+    const original = root.dataset.accent ?? 'dustblue'
+    let cancelled = false
+    let timers: number[] = []
+
+    const stop = () => {
+      if (cancelled) return
+      cancelled = true
+      timers.forEach(clearTimeout)
+      timers = []
+      ghost.classList.remove('is-on')
+    }
+
+    // Any real intent ends it. Pointer movement over the panel, a touch, a
+    // key, or a click anywhere in it.
+    panel.addEventListener('pointerdown', stop)
+    panel.addEventListener('pointermove', stop, { once: true })
+    window.addEventListener('keydown', stop, { once: true })
+
+    const at = (el: HTMLElement) => {
+      const p = panel.getBoundingClientRect()
+      const r = el.getBoundingClientRect()
+      return {
+        x: r.left - p.left + r.width / 2,
+        y: r.top - p.top + r.height / 2,
+      }
+    }
+
+    const after = (ms: number, run: () => void) => {
+      timers.push(window.setTimeout(run, ms) as unknown as number)
+    }
+
+    const moveTo = (el: HTMLElement) => {
+      const { x, y } = at(el)
+      ghost.style.transform = `translate3d(${x}px, ${y}px, 0)`
+      ping.style.transform = `translate3d(${x}px, ${y}px, 0) scale(0.3)`
+    }
+
+    const clickAt = (el: HTMLElement) => {
+      const key = el.dataset.accentSet
+      if (!key || cancelled) return
+      ghost.classList.add('is-pressed')
+      ping.classList.remove('is-firing')
+      // Reading offsetWidth restarts the animation; without it the class is
+      // removed and re-added inside one frame and nothing replays.
+      void ping.offsetWidth
+      ping.classList.add('is-firing')
+      applyAccent(key, false)
+      after(150, () => ghost.classList.remove('is-pressed'))
+    }
+
+    // Two accents far apart in hue, so the retint is obvious rather than
+    // subtle. Neither is the one the page arrived wearing.
+    const first = swatches.find((s) => s.dataset.accentSet === 'terracotta') ?? swatches[3]
+    const second = swatches.find((s) => s.dataset.accentSet === 'sage') ?? swatches[2]
+
+    const run = () => {
+      if (cancelled) return
+      moveTo(swatches[0])
+      ghost.classList.add('is-on')
+
+      after(420, () => moveTo(first))
+      after(1180, () => clickAt(first))
+      after(1900, () => moveTo(second))
+      after(2620, () => clickAt(second))
+      after(3400, () => {
+        ghost.classList.remove('is-on')
+        // Put back what the visitor actually had, so nothing was decided for
+        // them. Late enough that the last swatch was clearly seen to work.
+        after(500, () => applyAccent(original, false))
+      })
+    }
+
+    const watcher = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          watcher.disconnect()
+          // A beat after it lands, so the pointer is not already moving while
+          // the section is still sliding into place.
+          after(500, run)
+        }
+      },
+      { threshold: 0.55 },
+    )
+    watcher.observe(panel)
+  }
 </script>
 
 <style>
@@ -138,11 +284,92 @@ const accents = [
   }
 
   .panel {
+    position: relative;
     margin-top: clamp(2rem, 5vw, 3rem);
     border: 1px solid var(--line);
     border-radius: var(--r-card);
     background: var(--surface);
     padding: clamp(1.25rem, 3vw, 2rem);
+  }
+
+  /*
+   * The guided pointer. Both it and its click ring are positioned from the
+   * panel's top left corner and moved with a transform, so neither one ever
+   * triggers layout while it travels.
+   *
+   * The arrow is drawn in the text colour with a stroke in the page colour
+   * around it, which is how a real cursor stays visible over whatever it
+   * happens to be passing over.
+   */
+  .ghost {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 3;
+    display: block;
+    opacity: 0;
+    pointer-events: none;
+    /* The tip of the arrow sits at the coordinate, not its centre, which is
+       where a real pointer's hotspot is. */
+    margin: -2px 0 0 -2px;
+    transition:
+      transform 0.62s cubic-bezier(0.32, 0.72, 0.3, 1),
+      opacity var(--t-base) ease;
+  }
+
+  .ghost.is-on {
+    opacity: 1;
+  }
+
+  .ghost svg {
+    display: block;
+    transition: transform var(--t-fast) ease;
+  }
+
+  /* The press. A real cursor does not change, so the arrow dips instead,
+     which reads as the click without inventing a cursor state. */
+  .ghost.is-pressed svg {
+    transform: translate(1px, 1px) scale(0.88);
+  }
+
+  .ping {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 34px;
+    height: 34px;
+    margin: -17px 0 0 -17px;
+    border-radius: 50%;
+    border: 1.5px solid var(--accent);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.62s cubic-bezier(0.32, 0.72, 0.3, 1);
+  }
+
+  .ping.is-firing {
+    animation: ping 0.5s ease-out;
+  }
+
+  @keyframes ping {
+    from {
+      opacity: 0.9;
+      scale: 0.35;
+    }
+    to {
+      opacity: 0;
+      scale: 1.15;
+    }
+  }
+
+  /* It never runs under either of these, but the styles are guarded anyway so
+     a stuck class cannot leave something animating. */
+  @media (prefers-reduced-motion: reduce) {
+    .ghost,
+    .ghost svg,
+    .ping {
+      transition: none;
+      animation: none;
+    }
   }
 
   .controls {
