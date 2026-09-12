@@ -46,14 +46,33 @@ body,
     color var(--t-slow) ease;
 }
 
+/*
+ * Headings are Archivo, sentences are Inter.
+ *
+ * Inter at a headline size is body copy enlarged: it is drawn to be invisible,
+ * which is exactly right for a paragraph and exactly wrong for the one line a
+ * visitor reads first. Archivo has squarer counters and takes a much tighter
+ * fit at large sizes without the letters colliding.
+ *
+ * The tracking is the other half. -0.02em is the safe default; -0.033em is
+ * what the craft bar this site was measured against actually sets, and the
+ * difference between them is most of why a headline reads as considered
+ * rather than as a default.
+ */
 h1,
 h2,
 h3 {
   margin: 0;
+  font-family: 'Archivo', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.033em;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+h3 {
   font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1.15;
-  text-wrap: balance;
 }
 
 h1 {
@@ -108,7 +127,14 @@ img {
   margin-inline: auto;
 }
 
-/* The 10px uppercase section header is the only uppercase in the system. */
+/*
+ * The 10px uppercase label, and the only uppercase in the system.
+ *
+ * It names a list, in the footer's columns. It is deliberately not used above
+ * a heading any more: a small label announcing the heading beneath it repeats
+ * what the heading already says, in a size nobody reads, and is the clearest
+ * single tell of a page assembled from a template.
+ */
 .eyebrow {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;

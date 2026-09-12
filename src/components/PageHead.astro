@@ -1,10 +1,9 @@
 ---
 interface Props {
-  eyebrow: string
   title: string
   lede?: string
 }
-const { eyebrow, title, lede } = Astro.props
+const { title, lede } = Astro.props
 ---
 
 {
@@ -15,8 +14,15 @@ const { eyebrow, title, lede } = Astro.props
   gesture until it stops meaning anything.
 */
 }
+{
+  /*
+  No label above the heading. A small uppercase line announcing the heading
+  underneath it is the kicker the craft floor refuses: it repeats what the
+  heading already says, in a size nobody reads, and it is the single most
+  reliable tell of a page assembled from a template.
+*/
+}
 <header class="page-head wrap">
-  <p class="eyebrow">{eyebrow}</p>
   <h1>{title}</h1>
   {lede && <p class="lede">{lede}</p>}
 </header>

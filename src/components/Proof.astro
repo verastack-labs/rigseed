@@ -36,7 +36,6 @@ const keys = [
 ---
 
 <section id="proof" class="wrap">
-  <p class="eyebrow">What it actually does</p>
   <h2>A front end, and honest about being one.</h2>
 
   {
@@ -95,6 +94,15 @@ const keys = [
 
   .point h3 {
     margin-bottom: 0.625rem;
+  }
+
+  @media (min-width: 54rem) {
+    /* Two lines' worth, whether the heading needs them or not, so the three
+       paragraphs start on one line across the row. One heading wrapping and
+       the others not was pushing a single column's body text down on its own. */
+    .point h3 {
+      min-height: 2lh;
+    }
   }
 
   .point p {
