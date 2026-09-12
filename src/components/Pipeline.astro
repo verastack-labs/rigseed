@@ -229,10 +229,20 @@ const nodes = [
       align-items: center;
     }
 
+    /*
+     * Sized by its own label, not by a guess.
+     *
+     * This was a fixed clamp(4rem, 8vw, 7rem). "HTTP · 127.0.0.1" is wider than
+     * 7rem at any viewport, so the pill overflowed the track it was supposed to
+     * sit in, overlapped the boxes either side, and punched a hole in their
+     * borders with its own background. The grid track is already `auto`; the
+     * fix is to stop overriding it and let the label decide, with enough
+     * padding that a run of wire still shows on both sides.
+     */
     .wire {
       min-height: 0;
-      width: clamp(4rem, 8vw, 7rem);
       padding-block: 0;
+      padding-inline: 1.75rem;
     }
 
     /* Horizontal, and the gradient turns with it. */
