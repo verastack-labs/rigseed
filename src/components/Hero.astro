@@ -151,37 +151,6 @@ const version = 'v0.1.1'
     margin-top: 2.25rem;
   }
 
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.7rem 1.35rem;
-    border: 1px solid var(--line);
-    border-radius: var(--r-control);
-    background: var(--surface);
-    color: var(--text);
-    font-size: 0.9375rem;
-    font-weight: 500;
-    text-decoration: none;
-    transition:
-      background-color var(--t-fast) ease,
-      border-color var(--t-fast) ease,
-      transform var(--t-fast) var(--spring);
-  }
-
-  .btn:hover {
-    background: var(--surface2);
-    transform: translateY(-1px);
-  }
-
-  .btn.primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--accent-on);
-  }
-
-  .btn.primary:hover {
-    background: color-mix(in srgb, var(--accent) 88%, var(--text));
-  }
 
   .endpoints {
     margin-top: 1.75rem;
@@ -225,12 +194,4 @@ const version = 'v0.1.1'
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .btn {
-      transition: none;
-    }
-    .btn:hover {
-      transform: none;
-    }
-  }
 </style>
