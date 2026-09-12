@@ -91,49 +91,67 @@ const version = 'v0.1.1'
 
 <script>
   /*
-   * The capture lies back at rest and stands up as you scroll past it.
+   * Re-run on every navigation, because the router keeps this module alive across page changes and the element it drives is replaced underneath it.
    *
-   * Driven from scrollY against a fixed range rather than from the element's
-   * own intersection, because the element is in the first viewport on load and
-   * an observer-based version has nothing to observe until the reader has
-   * already moved. The starting angle is small enough that the screenshot is
-   * completely legible before anybody scrolls at all, which is the point: this
-   * is a resting state, not a reveal waiting to be triggered.
+   * astro:page-load fires at the end of the first load and after every
+   * client-side navigation, which is the only hook needed. Listeners are hung
+   * off an AbortController that is torn down first, so navigating back and
+   * forth cannot leave a stack of handlers behind on window or document.
    */
-  const stage = document.querySelector<HTMLElement>('[data-stage]')
-  const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
-  const narrow = window.matchMedia('(max-width: 48rem)')
+  let controller: AbortController | null = null
 
-  if (stage && !calm.matches) {
-    const START = 14
-    const RANGE = 420
+  const setup = () => {
+    controller?.abort()
+    controller = new AbortController()
+    const { signal } = controller
 
-    let ticking = false
-    const update = () => {
-      ticking = false
-      if (narrow.matches) {
-        stage.style.removeProperty('--tilt')
-        return
+    /*
+     * The capture lies back at rest and stands up as you scroll past it.
+     *
+     * Driven from scrollY against a fixed range rather than from the element's
+     * own intersection, because the element is in the first viewport on load and
+     * an observer-based version has nothing to observe until the reader has
+     * already moved. The starting angle is small enough that the screenshot is
+     * completely legible before anybody scrolls at all, which is the point: this
+     * is a resting state, not a reveal waiting to be triggered.
+     */
+    const stage = document.querySelector<HTMLElement>('[data-stage]')
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const narrow = window.matchMedia('(max-width: 48rem)')
+
+    if (stage && !calm.matches) {
+      const START = 14
+      const RANGE = 420
+
+      let ticking = false
+      const update = () => {
+        ticking = false
+        if (narrow.matches) {
+          stage.style.removeProperty('--tilt')
+          return
+        }
+        const t = Math.min(window.scrollY / RANGE, 1)
+        // Eased out, so most of the straightening happens early and the last few
+        // degrees do not drag on for another two hundred pixels.
+        const eased = 1 - Math.pow(1 - t, 2)
+        stage.style.setProperty('--tilt', String(START * (1 - eased)))
       }
-      const t = Math.min(window.scrollY / RANGE, 1)
-      // Eased out, so most of the straightening happens early and the last few
-      // degrees do not drag on for another two hundred pixels.
-      const eased = 1 - Math.pow(1 - t, 2)
-      stage.style.setProperty('--tilt', String(START * (1 - eased)))
-    }
 
-    window.addEventListener(
-      'scroll',
-      () => {
-        if (ticking) return
-        ticking = true
-        requestAnimationFrame(update)
-      },
-      { passive: true },
-    )
-    window.addEventListener('resize', update)
-    update()
+      window.addEventListener(
+        'scroll',
+        () => {
+          if (ticking) return
+          ticking = true
+          requestAnimationFrame(update)
+        },
+        { passive: true, signal },
+      )
+      window.addEventListener('resize', update, { signal })
+      update()
+    }
   }
+
+  document.addEventListener('astro:page-load', setup)
 </script>
 
 <style>

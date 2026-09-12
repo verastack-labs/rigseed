@@ -16,36 +16,54 @@
 ---
 
 <script>
-  const groups = document.querySelectorAll<HTMLElement>('[data-spotlight]')
-  const fine = window.matchMedia('(hover: hover) and (pointer: fine)')
+  /*
+   * Re-run on every navigation, because the router keeps this module alive across page changes and the cards it tracks are replaced underneath it.
+   *
+   * astro:page-load fires at the end of the first load and after every
+   * client-side navigation, which is the only hook needed. Listeners are hung
+   * off an AbortController that is torn down first, so navigating back and
+   * forth cannot leave a stack of handlers behind on window or document.
+   */
+  let controller: AbortController | null = null
 
-  if (fine.matches) {
-    groups.forEach((group) => {
-      const spots = Array.from(group.querySelectorAll<HTMLElement>('[data-spot]'))
-      let frame = 0
-      let last: PointerEvent | null = null
+  const setup = () => {
+    controller?.abort()
+    controller = new AbortController()
+    const { signal } = controller
 
-      const apply = () => {
-        frame = 0
-        if (!last) return
-        for (const spot of spots) {
-          const r = spot.getBoundingClientRect()
-          // Written as percentages of the card so the gradient does not need
-          // to know the card's size, which changes with the column count.
-          spot.style.setProperty('--mx', `${((last.clientX - r.left) / r.width) * 100}%`)
-          spot.style.setProperty('--my', `${((last.clientY - r.top) / r.height) * 100}%`)
+    const groups = document.querySelectorAll<HTMLElement>('[data-spotlight]')
+    const fine = window.matchMedia('(hover: hover) and (pointer: fine)')
+
+    if (fine.matches) {
+      groups.forEach((group) => {
+        const spots = Array.from(group.querySelectorAll<HTMLElement>('[data-spot]'))
+        let frame = 0
+        let last: PointerEvent | null = null
+
+        const apply = () => {
+          frame = 0
+          if (!last) return
+          for (const spot of spots) {
+            const r = spot.getBoundingClientRect()
+            // Written as percentages of the card so the gradient does not need
+            // to know the card's size, which changes with the column count.
+            spot.style.setProperty('--mx', `${((last.clientX - r.left) / r.width) * 100}%`)
+            spot.style.setProperty('--my', `${((last.clientY - r.top) / r.height) * 100}%`)
+          }
         }
-      }
 
-      group.addEventListener(
-        'pointermove',
-        (e) => {
-          last = e
-          if (frame) return
-          frame = requestAnimationFrame(apply)
-        },
-        { passive: true },
-      )
-    })
+        group.addEventListener(
+          'pointermove',
+          (e) => {
+            last = e
+            if (frame) return
+            frame = requestAnimationFrame(apply)
+          },
+          { passive: true, signal },
+        )
+      })
+    }
   }
+
+  document.addEventListener('astro:page-load', setup)
 </script>

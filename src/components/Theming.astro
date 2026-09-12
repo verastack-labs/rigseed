@@ -113,253 +113,294 @@ const accents = [
 </section>
 
 <script>
-  // No React here on purpose. A theme change is one attribute write, and
-  // hydrating a component to perform a dataset assignment would cost more than
-  // the assignment does.
-  const root = document.documentElement
-
-  const store = (key: string, value: string) => {
-    try {
-      localStorage.setItem('rigseed:' + key, value)
-    } catch {
-      // Storage blocked. The choice still applies for this visit, which is the
-      // part that matters. Only remembering it is lost.
-    }
-  }
-
-  const sync = () => {
-    document.querySelectorAll<HTMLElement>('[data-accent-set]').forEach((el) => {
-      el.setAttribute('aria-pressed', String(el.dataset.accentSet === root.dataset.accent))
-    })
-    document.querySelectorAll<HTMLElement>('[data-mode-set]').forEach((el) => {
-      el.setAttribute('aria-pressed', String(el.dataset.modeSet === root.dataset.mode))
-    })
-  }
-
-  // Split out so the demonstration can change the accent without persisting
-  // it. A visitor who watched a pointer they do not control pick a colour has
-  // not chosen that colour, and writing it to storage would mean they arrive
-  // next time wearing it.
-  const applyAccent = (next: string, persist: boolean) => {
-    root.dataset.accent = next
-    if (persist) store('accent', next)
-    sync()
-  }
-
-  const swatches = Array.from(document.querySelectorAll<HTMLElement>('[data-accent-set]'))
-
-  swatches.forEach((el) => {
-    el.addEventListener('click', () => {
-      const next = el.dataset.accentSet
-      if (!next) return
-      applyAccent(next, true)
-    })
-  })
-
-  document.querySelectorAll<HTMLElement>('[data-mode-set]').forEach((el) => {
-    el.addEventListener('click', () => {
-      const next = el.dataset.modeSet
-      if (!next) return
-      root.dataset.mode = next
-      store('mode', next)
-      sync()
-    })
-  })
-
-  sync()
-
   /*
-   * The guided pointer.
+   * Re-run on every navigation, because the router keeps this module alive across page changes and the controls it wires are replaced underneath it.
    *
-   * The swatch row is the one genuinely interactive thing on this page, and a
-   * row of coloured dots reads as a legend until something moves. So a pointer
-   * that is not the visitor's walks to two of them and clicks.
-   *
-   * Rules it follows. It runs once. It yields instantly to a real pointer,
-   * because a demonstration competing with the person it is for is worse than
-   * no demonstration. It does not persist what it picks. And it does not run
-   * at all under reduced motion, where a cursor flying across the screen is
-   * exactly the thing that setting is asking us not to do.
+   * astro:page-load fires at the end of the first load and after every
+   * client-side navigation, which is the only hook needed. Listeners are hung
+   * off an AbortController that is torn down first, so navigating back and
+   * forth cannot leave a stack of handlers behind on window or document.
    */
-  const panel = document.querySelector<HTMLElement>('[data-panel]')
-  const ghost = document.querySelector<HTMLElement>('[data-ghost]')
-  const burst = document.querySelector<HTMLElement>('[data-burst]')
-  const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
-  const coarse = window.matchMedia('(pointer: coarse)')
+  let controller: AbortController | null = null
 
-  if (panel && ghost && burst && !calm.matches && !coarse.matches && swatches.length > 4) {
-    const original = root.dataset.accent ?? 'dustblue'
-    let cancelled = false
-    let timers: number[] = []
+  // The demonstration is an introduction, and an introduction repeats itself
+  // once and then becomes a tic. Module scope outlives navigations under the
+  // router, so a visitor who wanders to Screens and comes back sees the panel
+  // as a control they already know rather than being shown it again.
+  let demonstrated = false
 
-    const stop = () => {
-      if (cancelled) return
-      cancelled = true
-      timers.forEach(clearTimeout)
-      timers = []
-      ghost.classList.remove('is-on')
-    }
+  const setup = () => {
+    controller?.abort()
+    controller = new AbortController()
+    const { signal } = controller
 
-    /*
-     * Yielding to the visitor, carefully.
-     *
-     * A press or a keypress is unambiguous intent and cancels immediately,
-     * whenever it happens. Pointer movement is not: a cursor that merely
-     * happens to be resting over the panel when the page loads emits a move
-     * the instant anything reflows underneath it, and an earlier version of
-     * this cancelled the demonstration before it had drawn a single frame.
-     *
-     * So movement only counts once the demonstration is actually running, and
-     * only when the pointer has genuinely travelled. Ten pixels is further
-     * than jitter and shorter than a deliberate reach for a swatch.
-     */
-    panel.addEventListener('pointerdown', stop)
-    window.addEventListener('keydown', stop, { once: true })
+    // No React here on purpose. A theme change is one attribute write, and
+    // hydrating a component to perform a dataset assignment would cost more than
+    // the assignment does.
+    const root = document.documentElement
 
-    const watchPointer = () => {
-      let from: { x: number; y: number } | null = null
-      window.addEventListener('pointermove', (e) => {
-        if (cancelled) return
-        if (!from) {
-          from = { x: e.clientX, y: e.clientY }
-          return
-        }
-        if (Math.hypot(e.clientX - from.x, e.clientY - from.y) > 10) stop()
-      })
-    }
-
-    const at = (el: HTMLElement) => {
-      const p = panel.getBoundingClientRect()
-      const r = el.getBoundingClientRect()
-      return {
-        x: r.left - p.left + r.width / 2,
-        y: r.top - p.top + r.height / 2,
+    const store = (key: string, value: string) => {
+      try {
+        localStorage.setItem('rigseed:' + key, value)
+      } catch {
+        // Storage blocked. The choice still applies for this visit, which is the
+        // part that matters. Only remembering it is lost.
       }
     }
 
-    const after = (ms: number, run: () => void) => {
-      timers.push(window.setTimeout(run, ms) as unknown as number)
+    const sync = () => {
+      document.querySelectorAll<HTMLElement>('[data-accent-set]').forEach((el) => {
+        el.setAttribute('aria-pressed', String(el.dataset.accentSet === root.dataset.accent))
+      })
+      document.querySelectorAll<HTMLElement>('[data-mode-set]').forEach((el) => {
+        el.setAttribute('aria-pressed', String(el.dataset.modeSet === root.dataset.mode))
+      })
     }
 
+    // Split out so the demonstration can change the accent without persisting
+    // it. A visitor who watched a pointer they do not control pick a colour has
+    // not chosen that colour, and writing it to storage would mean they arrive
+    // next time wearing it.
+    const applyAccent = (next: string, persist: boolean) => {
+      root.dataset.accent = next
+      if (persist) store('accent', next)
+      sync()
+    }
+
+    const swatches = Array.from(document.querySelectorAll<HTMLElement>('[data-accent-set]'))
+
+    swatches.forEach((el) => {
+      el.addEventListener('click', () => {
+        const next = el.dataset.accentSet
+        if (!next) return
+        applyAccent(next, true)
+      })
+    })
+
+    document.querySelectorAll<HTMLElement>('[data-mode-set]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const next = el.dataset.modeSet
+        if (!next) return
+        root.dataset.mode = next
+        store('mode', next)
+        sync()
+      })
+    })
+
+    sync()
+
     /*
-     * Travel along a sagging arc rather than a straight line.
+     * The guided pointer.
      *
-     * A hand moving a mouse between two points does not draw a straight line;
-     * it drops below the line of travel and comes back up, and the straight
-     * version is the single clearest tell that a cursor is scripted.
+     * The swatch row is the one genuinely interactive thing on this page, and a
+     * row of coloured dots reads as a legend until something moves. So a pointer
+     * that is not the visitor's walks to two of them and clicks.
      *
-     * The path is a quadratic bezier whose control point sits at the midpoint,
-     * pushed down by a fraction of the distance, so a short hop between
-     * neighbouring swatches barely bends and a long reach across the row
-     * visibly troughs. It is sampled into keyframes because interpolating
-     * between two or three transforms would give straight segments again,
-     * which is the thing being fixed. Sampling is uniform in t and the easing
-     * rides on the animation as a whole, so the speed curve stays correct
-     * while the shape comes from the geometry.
+     * Rules it follows. It runs once. It yields instantly to a real pointer,
+     * because a demonstration competing with the person it is for is worse than
+     * no demonstration. It does not persist what it picks. And it does not run
+     * at all under reduced motion, where a cursor flying across the screen is
+     * exactly the thing that setting is asking us not to do.
      */
-    const SAMPLES = 20
+    const panel = document.querySelector<HTMLElement>('[data-panel]')
+    const ghost = document.querySelector<HTMLElement>('[data-ghost]')
+    const burst = document.querySelector<HTMLElement>('[data-burst]')
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const coarse = window.matchMedia('(pointer: coarse)')
 
-    let pos = { x: 0, y: 0 }
-    let flight: Animation | null = null
+    if (
+      !demonstrated &&
+      panel &&
+      ghost &&
+      burst &&
+      !calm.matches &&
+      !coarse.matches &&
+      swatches.length > 4
+    ) {
+      const original = root.dataset.accent ?? 'dustblue'
+      let cancelled = false
+      let timers: number[] = []
 
-    const moveTo = (el: HTMLElement, duration = 620) => {
-      const to = at(el)
-      const from = pos
-      pos = to
+      const stop = () => {
+        if (cancelled) return
+        cancelled = true
+        timers.forEach(clearTimeout)
+        timers = []
+        ghost.classList.remove('is-on')
+      }
 
-      const dx = to.x - from.x
-      const dy = to.y - from.y
-      const dist = Math.hypot(dx, dy)
-      const sag = Math.min(dist * 0.3, 54)
+      /*
+       * Yielding to the visitor, carefully.
+       *
+       * A press or a keypress is unambiguous intent and cancels immediately,
+       * whenever it happens. Pointer movement is not: a cursor that merely
+       * happens to be resting over the panel when the page loads emits a move
+       * the instant anything reflows underneath it, and an earlier version of
+       * this cancelled the demonstration before it had drawn a single frame.
+       *
+       * So movement only counts once the demonstration is actually running, and
+       * only when the pointer has genuinely travelled. Ten pixels is further
+       * than jitter and shorter than a deliberate reach for a swatch.
+       */
+      panel.addEventListener('pointerdown', stop, { signal })
+      window.addEventListener('keydown', stop, { once: true, signal })
 
-      const cx = (from.x + to.x) / 2
-      const cy = (from.y + to.y) / 2 + sag
+      const watchPointer = () => {
+        let from: { x: number; y: number } | null = null
+        window.addEventListener(
+          'pointermove',
+          (e) => {
+            if (cancelled) return
+            if (!from) {
+              from = { x: e.clientX, y: e.clientY }
+              return
+            }
+            if (Math.hypot(e.clientX - from.x, e.clientY - from.y) > 10) stop()
+          },
+          { signal },
+        )
+      }
 
-      const frames = []
-      for (let i = 0; i <= SAMPLES; i++) {
-        const t = i / SAMPLES
-        const u = 1 - t
-        const x = u * u * from.x + 2 * u * t * cx + t * t * to.x
-        const y = u * u * from.y + 2 * u * t * cy + t * t * to.y
-        frames.push({
-          offset: t,
-          transform: `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`,
+      const at = (el: HTMLElement) => {
+        const p = panel.getBoundingClientRect()
+        const r = el.getBoundingClientRect()
+        return {
+          x: r.left - p.left + r.width / 2,
+          y: r.top - p.top + r.height / 2,
+        }
+      }
+
+      const after = (ms: number, run: () => void) => {
+        timers.push(window.setTimeout(run, ms) as unknown as number)
+      }
+
+      /*
+       * Travel along a sagging arc rather than a straight line.
+       *
+       * A hand moving a mouse between two points does not draw a straight line;
+       * it drops below the line of travel and comes back up, and the straight
+       * version is the single clearest tell that a cursor is scripted.
+       *
+       * The path is a quadratic bezier whose control point sits at the midpoint,
+       * pushed down by a fraction of the distance, so a short hop between
+       * neighbouring swatches barely bends and a long reach across the row
+       * visibly troughs. It is sampled into keyframes because interpolating
+       * between two or three transforms would give straight segments again,
+       * which is the thing being fixed. Sampling is uniform in t and the easing
+       * rides on the animation as a whole, so the speed curve stays correct
+       * while the shape comes from the geometry.
+       */
+      const SAMPLES = 20
+
+      let pos = { x: 0, y: 0 }
+      let flight: Animation | null = null
+
+      const moveTo = (el: HTMLElement, duration = 620) => {
+        const to = at(el)
+        const from = pos
+        pos = to
+
+        const dx = to.x - from.x
+        const dy = to.y - from.y
+        const dist = Math.hypot(dx, dy)
+        const sag = Math.min(dist * 0.3, 54)
+
+        const cx = (from.x + to.x) / 2
+        const cy = (from.y + to.y) / 2 + sag
+
+        const frames = []
+        for (let i = 0; i <= SAMPLES; i++) {
+          const t = i / SAMPLES
+          const u = 1 - t
+          const x = u * u * from.x + 2 * u * t * cx + t * t * to.x
+          const y = u * u * from.y + 2 * u * t * cy + t * t * to.y
+          frames.push({
+            offset: t,
+            transform: `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`,
+          })
+        }
+
+        flight?.cancel()
+        flight = ghost.animate(frames, {
+          duration,
+          easing: 'cubic-bezier(0.36, 0.16, 0.2, 1)',
+          fill: 'forwards',
         })
       }
 
-      flight?.cancel()
-      flight = ghost.animate(frames, {
-        duration,
-        easing: 'cubic-bezier(0.36, 0.16, 0.2, 1)',
-        fill: 'forwards',
-      })
+      // Placed without travelling, for the first appearance.
+      const placeAt = (el: HTMLElement) => {
+        pos = at(el)
+        flight?.cancel()
+        ghost.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`
+      }
+
+      const clickAt = (el: HTMLElement) => {
+        const key = el.dataset.accentSet
+        if (!key || cancelled) return
+        // The burst is invisible until it fires, so it is placed at the moment of
+        // contact rather than carried along the whole flight.
+        const { x, y } = at(el)
+        burst.style.transform = `translate3d(${x}px, ${y}px, 0)`
+        ghost.classList.add('is-pressed')
+        burst.classList.remove('is-firing')
+        // Reading offsetWidth restarts the animation; without it the class is
+        // removed and re-added inside one frame and nothing replays.
+        void burst.offsetWidth
+        burst.classList.add('is-firing')
+        applyAccent(key, false)
+        after(150, () => ghost.classList.remove('is-pressed'))
+      }
+
+      // Two accents far apart in hue, so the retint is obvious rather than
+      // subtle. Neither is the one the page arrived wearing.
+      const first = swatches.find((s) => s.dataset.accentSet === 'terracotta') ?? swatches[3]
+      const second = swatches.find((s) => s.dataset.accentSet === 'sage') ?? swatches[2]
+
+      const run = () => {
+        if (cancelled) return
+        watchPointer()
+        // Arrives a little up and to the left of the row, so the first move is a
+        // reach into it rather than a slide along it.
+        placeAt(swatches[0])
+        ghost.style.transform = `translate3d(${pos.x - 46}px, ${pos.y - 34}px, 0)`
+        pos = { x: pos.x - 46, y: pos.y - 34 }
+        ghost.classList.add('is-on')
+
+        after(420, () => moveTo(first, 760))
+        after(1260, () => clickAt(first))
+        after(1960, () => moveTo(second, 660))
+        after(2700, () => clickAt(second))
+        after(3480, () => {
+          ghost.classList.remove('is-on')
+          // Put back what the visitor actually had, so nothing was decided for
+          // them. Late enough that the last swatch was clearly seen to work.
+          after(500, () => applyAccent(original, false))
+        })
+      }
+
+      const watcher = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue
+            watcher.disconnect()
+            // A beat after it lands, so the pointer is not already moving while
+            // the section is still sliding into place.
+            after(500, run)
+          }
+        },
+        { threshold: 0.55 },
+      )
+      watcher.observe(panel)
+
+      // Disconnected with everything else when the page changes, so a visitor
+      // who leaves before the panel is ever reached does not leave an observer
+      // watching a node that is no longer in the document.
+      signal.addEventListener('abort', () => watcher.disconnect())
     }
-
-    // Placed without travelling, for the first appearance.
-    const placeAt = (el: HTMLElement) => {
-      pos = at(el)
-      flight?.cancel()
-      ghost.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`
-    }
-
-    const clickAt = (el: HTMLElement) => {
-      const key = el.dataset.accentSet
-      if (!key || cancelled) return
-      // The burst is invisible until it fires, so it is placed at the moment of
-      // contact rather than carried along the whole flight.
-      const { x, y } = at(el)
-      burst.style.transform = `translate3d(${x}px, ${y}px, 0)`
-      ghost.classList.add('is-pressed')
-      burst.classList.remove('is-firing')
-      // Reading offsetWidth restarts the animation; without it the class is
-      // removed and re-added inside one frame and nothing replays.
-      void burst.offsetWidth
-      burst.classList.add('is-firing')
-      applyAccent(key, false)
-      after(150, () => ghost.classList.remove('is-pressed'))
-    }
-
-    // Two accents far apart in hue, so the retint is obvious rather than
-    // subtle. Neither is the one the page arrived wearing.
-    const first = swatches.find((s) => s.dataset.accentSet === 'terracotta') ?? swatches[3]
-    const second = swatches.find((s) => s.dataset.accentSet === 'sage') ?? swatches[2]
-
-    const run = () => {
-      if (cancelled) return
-      watchPointer()
-      // Arrives a little up and to the left of the row, so the first move is a
-      // reach into it rather than a slide along it.
-      placeAt(swatches[0])
-      ghost.style.transform = `translate3d(${pos.x - 46}px, ${pos.y - 34}px, 0)`
-      pos = { x: pos.x - 46, y: pos.y - 34 }
-      ghost.classList.add('is-on')
-
-      after(420, () => moveTo(first, 760))
-      after(1260, () => clickAt(first))
-      after(1960, () => moveTo(second, 660))
-      after(2700, () => clickAt(second))
-      after(3480, () => {
-        ghost.classList.remove('is-on')
-        // Put back what the visitor actually had, so nothing was decided for
-        // them. Late enough that the last swatch was clearly seen to work.
-        after(500, () => applyAccent(original, false))
-      })
-    }
-
-    const watcher = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue
-          watcher.disconnect()
-          // A beat after it lands, so the pointer is not already moving while
-          // the section is still sliding into place.
-          after(500, run)
-        }
-      },
-      { threshold: 0.55 },
-    )
-    watcher.observe(panel)
   }
+
+  document.addEventListener('astro:page-load', setup)
 </script>
 
 <style>

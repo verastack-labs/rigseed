@@ -11,6 +11,7 @@ import '../styles/tokens.css'
 // accent into. Before base.css, which only consumes the result.
 import '../styles/site-theme.css'
 import '../styles/base.css'
+import { ClientRouter } from 'astro:transitions'
 import StructuredData from '../components/StructuredData.astro'
 
 interface Props {
@@ -64,13 +65,62 @@ const canonical = new URL(Astro.url.pathname, Astro.site).toString()
       preference would be a poor trade.
     -->
     <script is:inline>
-      try {
-        const mode = localStorage.getItem('rigseed:mode')
-        const accent = localStorage.getItem('rigseed:accent')
-        if (mode) document.documentElement.dataset.mode = mode
-        if (accent) document.documentElement.dataset.accent = accent
-      } catch {}
+      const applyTheme = () => {
+        try {
+          const mode = localStorage.getItem('rigseed:mode')
+          const accent = localStorage.getItem('rigseed:accent')
+          if (mode) document.documentElement.dataset.mode = mode
+          if (accent) document.documentElement.dataset.accent = accent
+        } catch {}
+      }
+      applyTheme()
+
+      /*
+       * The wordmark waits for its own face.
+       *
+       * Yellowtail is loaded with font-display: swap, so the name paints in
+       * whatever cursive the machine has and then jumps to the real face a
+       * moment later. On a word this distinctive, at this size, that jump is
+       * the first thing a visitor sees the site do.
+       *
+       * So the name is held invisible, not absent: it still takes its space,
+       * so nothing around it moves, and it simply arrives once. If the font
+       * fails or is slow, it is revealed anyway after a second and a half,
+       * because a permanently invisible wordmark is a worse outcome than a
+       * substituted one.
+       */
+      var FONT_READY = 'wordmark-ready'
+      var fontReady = false
+      var showWordmark = function () {
+        fontReady = true
+        document.documentElement.classList.add(FONT_READY)
+      }
+
+      if (document.fonts && document.fonts.load) {
+        document.fonts.load('1rem Yellowtail').then(showWordmark).catch(showWordmark)
+        setTimeout(showWordmark, 1500)
+      } else {
+        showWordmark()
+      }
+
+      // The router copies the incoming document's html attributes over the
+      // live ones, which includes data-mode, data-accent and this class, so a
+      // visitor who picked an accent would lose it the moment they opened
+      // another page and the wordmark would hide itself again. after-swap runs
+      // with the new DOM in place and before it is painted.
+      document.addEventListener('astro:after-swap', function () {
+        applyTheme()
+        if (fontReady) document.documentElement.classList.add(FONT_READY)
+      })
     </script>
+    <!--
+      Turns the site from a set of documents into one shell that swaps its
+      contents. Without it every navigation is a full document load: the nav is
+      rebuilt, its scroll state is lost, and the page goes blank in between.
+      With it, anything marked transition:persist survives the swap as the same
+      live DOM node, which is what the nav does.
+    -->
+    <ClientRouter />
     <StructuredData version={version} releaseUrl={releaseUrl} />
   </head>
   <body>

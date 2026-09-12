@@ -111,48 +111,66 @@ const steps = [
 </section>
 
 <script>
-  const section = document.querySelector<HTMLElement>('.tour')
-  const steps = Array.from(document.querySelectorAll<HTMLElement>('[data-step]'))
-  const layers = Array.from(document.querySelectorAll<HTMLElement>('[data-layer]'))
+  /*
+   * Re-run on every navigation, because the router keeps this module alive across page changes and the steps it measures are replaced underneath it.
+   *
+   * astro:page-load fires at the end of the first load and after every
+   * client-side navigation, which is the only hook needed. Listeners are hung
+   * off an AbortController that is torn down first, so navigating back and
+   * forth cannot leave a stack of handlers behind on window or document.
+   */
+  let controller: AbortController | null = null
 
-  if (section && steps.length && layers.length) {
-    let shown = 0
+  const setup = () => {
+    controller?.abort()
+    controller = new AbortController()
+    const { signal } = controller
 
-    const show = (i: number) => {
-      if (i === shown) return
-      shown = i
-      layers.forEach((l, n) => l.classList.toggle('is-on', n === i))
-      steps.forEach((s, n) => s.classList.toggle('is-active', n === i))
+    const section = document.querySelector<HTMLElement>('.tour')
+    const steps = Array.from(document.querySelectorAll<HTMLElement>('[data-step]'))
+    const layers = Array.from(document.querySelectorAll<HTMLElement>('[data-layer]'))
+
+    if (section && steps.length && layers.length) {
+      let shown = 0
+
+      const show = (i: number) => {
+        if (i === shown) return
+        shown = i
+        layers.forEach((l, n) => l.classList.toggle('is-on', n === i))
+        steps.forEach((s, n) => s.classList.toggle('is-active', n === i))
+      }
+
+      // Which step owns the reading line. The one whose top is nearest above it
+      // wins, which behaves correctly for steps shorter than the viewport where
+      // an intersection ratio flickers between two neighbours.
+      let ticking = false
+      const update = () => {
+        const line = window.scrollY + window.innerHeight * 0.45
+        let found = 0
+        steps.forEach((s, n) => {
+          if (s.offsetTop <= line) found = n
+        })
+        show(found)
+        ticking = false
+      }
+
+      window.addEventListener(
+        'scroll',
+        () => {
+          if (ticking) return
+          ticking = true
+          requestAnimationFrame(update)
+        },
+        { passive: true, signal },
+      )
+      window.addEventListener('resize', update, { signal })
+
+      steps[0]?.classList.add('is-active')
+      update()
     }
-
-    // Which step owns the reading line. The one whose top is nearest above it
-    // wins, which behaves correctly for steps shorter than the viewport where
-    // an intersection ratio flickers between two neighbours.
-    let ticking = false
-    const update = () => {
-      const line = window.scrollY + window.innerHeight * 0.45
-      let found = 0
-      steps.forEach((s, n) => {
-        if (s.offsetTop <= line) found = n
-      })
-      show(found)
-      ticking = false
-    }
-
-    window.addEventListener(
-      'scroll',
-      () => {
-        if (ticking) return
-        ticking = true
-        requestAnimationFrame(update)
-      },
-      { passive: true },
-    )
-    window.addEventListener('resize', update)
-
-    steps[0]?.classList.add('is-active')
-    update()
   }
+
+  document.addEventListener('astro:page-load', setup)
 </script>
 
 <style>

@@ -29,9 +29,11 @@ const onDownload = isCurrent(`${base}/download/`)
   progress bar. Up here it stays full width and legible in both states.
 */
 }
-<div class="progress" aria-hidden="true"><span data-progress></span></div>
+<div class="progress" aria-hidden="true" transition:persist="progress">
+  <span data-progress></span>
+</div>
 
-<header class="nav" data-nav>
+<header class="nav" data-nav transition:persist="nav">
   <div class="rail">
     {
       /*
@@ -87,34 +89,75 @@ const onDownload = isCurrent(`${base}/download/`)
       </nav>
 
       {
-        !onDownload && (
-          <div class="cta-slot" data-cta>
-            <a class="cta" href={`${base}/download/`} tabindex="-1" data-cta-link>
-              Download
-            </a>
-          </div>
-        )
+        /*
+        Always rendered, then hidden on the download page by script. A
+        persisted node keeps whichever markup it was born with, so a bar first
+        rendered on the download page would have no button to show anywhere
+        else for the rest of the session.
+      */
       }
+      <div class="cta-slot" data-cta hidden={isCurrent(`${base}/download/`)}>
+        <a class="cta" href={`${base}/download/`} tabindex="-1" data-cta-link> Download </a>
+      </div>
     </div>
   </div>
 </header>
 
 <script>
-  const nav = document.querySelector<HTMLElement>('[data-nav]')
-  const links = document.querySelector<HTMLElement>('[data-links]')
-  const indicator = document.querySelector<HTMLElement>('[data-indicator]')
-  const progress = document.querySelector<HTMLElement>('[data-progress]')
-  const ctaLink = document.querySelector<HTMLAnchorElement>('[data-cta-link]')
+  /*
+   * The bar is a persisted node: transition:persist keeps this exact element
+   * alive across navigations rather than rebuilding it, so its scroll state,
+   * its measured indicator and its listeners all survive a page change. That
+   * also means this module runs once for the whole session, and everything
+   * that depends on which page we are on has to be recomputed when the page
+   * changes rather than read at parse time.
+   */
+  let controller: AbortController | null = null
 
-  if (nav && links && indicator && progress) {
-    // Two thresholds rather than one, so the bar does not flicker between
-    // states when a trackpad leaves the page hovering on the boundary.
-    const ON = 32
-    const OFF = 12
-    let stuck = false
+  const setup = () => {
+    // Listeners are torn down and rebuilt on every navigation. Without this
+    // the persisted node would accumulate one more scroll handler per page the
+    // visitor ever opened.
+    controller?.abort()
+    controller = new AbortController()
+    const { signal } = controller
+
+    const nav = document.querySelector<HTMLElement>('[data-nav]')
+    const links = document.querySelector<HTMLElement>('[data-links]')
+    const indicator = document.querySelector<HTMLElement>('[data-indicator]')
+    const progress = document.querySelector<HTMLElement>('[data-progress]')
+    const ctaLink = document.querySelector<HTMLAnchorElement>('[data-cta-link]')
+    if (!nav || !links || !indicator || !progress) return
 
     const pageLinks = Array.from(links.querySelectorAll<HTMLAnchorElement>('[data-page]'))
-    const home = pageLinks.find((a) => a.classList.contains('is-current')) ?? null
+
+    // Which page we are on, recomputed from the address rather than trusted
+    // from the markup, because the markup is the one this node was first
+    // rendered with and never updates itself.
+    const here = location.pathname.replace(/\/+$/, '')
+    let home: HTMLAnchorElement | null = null
+    for (const a of pageLinks) {
+      const mine = new URL(a.href).pathname.replace(/\/+$/, '') === here
+      a.classList.toggle('is-current', mine)
+      if (mine) {
+        a.setAttribute('aria-current', 'page')
+        home = a
+      } else {
+        a.removeAttribute('aria-current')
+      }
+    }
+
+    // The button offers the download page, so on the download page it would be
+    // offering the page you are already reading.
+    const onDownload = home?.getAttribute('href')?.includes('/download') ?? false
+    const slot = ctaLink?.parentElement
+    if (slot) slot.hidden = onDownload
+
+    // Two thresholds rather than one, so the bar does not flicker between
+    // states when a trackpad leaves the page resting on the boundary.
+    const ON = 32
+    const OFF = 12
+    let stuck = nav.classList.contains('is-stuck')
 
     // Measured from the element rather than assumed from an index, so the
     // indicator stays correct when labels change width or the webfont loads
@@ -130,13 +173,17 @@ const onDownload = isCurrent(`${base}/download/`)
     }
 
     pageLinks.forEach((a) => {
-      a.addEventListener('mouseenter', () => moveTo(a))
-      a.addEventListener('focus', () => moveTo(a))
+      a.addEventListener('mouseenter', () => moveTo(a), { signal })
+      a.addEventListener('focus', () => moveTo(a), { signal })
     })
-    links.addEventListener('mouseleave', () => moveTo(home))
-    links.addEventListener('focusout', (e) => {
-      if (!links.contains(e.relatedTarget as Node)) moveTo(home)
-    })
+    links.addEventListener('mouseleave', () => moveTo(home), { signal })
+    links.addEventListener(
+      'focusout',
+      (e) => {
+        if (!links.contains(e.relatedTarget as Node)) moveTo(home)
+      },
+      { signal },
+    )
 
     let ticking = false
     const update = () => {
@@ -151,11 +198,10 @@ const onDownload = isCurrent(`${base}/download/`)
       if (next !== stuck) {
         stuck = next
         nav.classList.toggle('is-stuck', stuck)
-        // A hidden control must not be a tab stop. The slot is zero width when
-        // the bar is at rest, so a keyboard user would otherwise tab to
-        // something with no visible focus ring and no apparent location.
-        if (ctaLink) ctaLink.tabIndex = stuck ? 0 : -1
       }
+      // A control with no width is not a tab stop. Set every pass rather than
+      // only on the transition, because a navigation can land mid-scroll.
+      if (ctaLink) ctaLink.tabIndex = stuck && !onDownload ? 0 : -1
 
       ticking = false
     }
@@ -167,13 +213,17 @@ const onDownload = isCurrent(`${base}/download/`)
         ticking = true
         requestAnimationFrame(update)
       },
-      { passive: true },
+      { passive: true, signal },
     )
 
-    window.addEventListener('resize', () => {
-      moveTo(home)
-      update()
-    })
+    window.addEventListener(
+      'resize',
+      () => {
+        moveTo(home)
+        update()
+      },
+      { signal },
+    )
 
     // The webfont swap changes label widths, so the first measurement can be
     // for the fallback. Re-measure once the real faces are in.
@@ -182,6 +232,10 @@ const onDownload = isCurrent(`${base}/download/`)
     moveTo(home)
     update()
   }
+
+  // Fires at the end of the first load and after every navigation, so this is
+  // the one hook needed rather than an immediate call plus a listener.
+  document.addEventListener('astro:page-load', setup)
 </script>
 
 <style>
@@ -324,6 +378,12 @@ const onDownload = isCurrent(`${base}/download/`)
    * keeps the links from jumping sideways when it arrives. A 0fr to 1fr grid
    * animates a width the content decides, without anybody hard-coding it.
    */
+  /* display: grid beats the hidden attribute's default, and the bar hides this
+     on the download page by setting exactly that attribute. */
+  .cta-slot[hidden] {
+    display: none;
+  }
+
   .cta-slot {
     display: grid;
     grid-template-columns: 0fr;
@@ -388,22 +448,50 @@ const onDownload = isCurrent(`${base}/download/`)
     }
   }
 
+  @media (max-width: 46rem) {
+    /* The arrow goes before the label does. */
+    .external svg {
+      display: none;
+    }
+  }
+
   @media (max-width: 40rem) {
     .rail {
       padding-inline: 0.75rem;
     }
+
     /* Nothing left to rest under once the labels are this tight. */
     .indicator {
       display: none;
     }
+
+    /*
+     * Source leaves the site, and at this width it was the link pushing the
+     * row past the edge and getting itself clipped. The three pages are what a
+     * nav is for; Source keeps its place in the footer, where nothing is
+     * competing for the space.
+     */
+    .external {
+      display: none;
+    }
+
+    .mark {
+      --wm-size: 1.2rem;
+    }
+
     .links {
       font-size: 0.875rem;
+      gap: 0;
     }
+
     .links a {
-      padding-inline: 0.45rem;
+      padding-inline: 0.5rem;
     }
-    /* The arrow goes before the label does. */
-    .external svg {
+  }
+
+  @media (max-width: 22rem) {
+    /* The wordmark is the home link, so the label is saying it twice. */
+    .links a[href$='/rigseed/'] {
       display: none;
     }
   }
