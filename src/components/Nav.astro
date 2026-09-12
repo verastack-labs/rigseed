@@ -301,8 +301,18 @@ const onDownload = isCurrent(`${base}/download/`)
     padding-inline: 0.7rem 0.5rem;
     background: color-mix(in srgb, var(--surface) 72%, transparent);
     border-color: var(--line);
-    backdrop-filter: blur(14px) saturate(1.4);
+    /*
+     * Prefixed first, standard last, and the order is the whole point.
+     *
+     * These were the other way round and the pill shipped with no blur at all.
+     * The minifier treats the two as one property and keeps the last
+     * declaration, so writing the standard property first meant it was the one
+     * thrown away, leaving only -webkit-backdrop-filter in the built file.
+     * This is the ordinary vendor-prefix rule and it only bites after
+     * minification, which is why dev looked correct the whole time.
+     */
     -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    backdrop-filter: blur(14px) saturate(1.4);
     box-shadow:
       0 1px 0 color-mix(in srgb, var(--text) 9%, transparent) inset,
       0 10px 30px -12px color-mix(in srgb, var(--shadow-color, #000) 90%, transparent);
