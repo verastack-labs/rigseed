@@ -220,7 +220,12 @@ const onDownload = isCurrent(`${base}/download/`)
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.45rem 0.55rem 0.45rem 0.75rem;
+    /* No inline padding at rest. The bar is part of the page then, so the
+       wordmark has to sit on the same left edge as the headline underneath it;
+       0.75rem of padding here put it 12.8px inside the content column, which
+       is the kind of thing you cannot unsee once you have measured it. The
+       padding arrives with the pill, as the pill's own inset. */
+    padding: 0.45rem 0;
     border: 1px solid transparent;
     border-radius: 999px;
     transition:
@@ -239,7 +244,7 @@ const onDownload = isCurrent(`${base}/download/`)
    */
   .is-stuck .shell {
     max-width: 54rem;
-    padding-inline: 0.6rem 0.5rem;
+    padding-inline: 0.7rem 0.5rem;
     background: color-mix(in srgb, var(--surface) 72%, transparent);
     border-color: var(--line);
     backdrop-filter: blur(14px) saturate(1.4);
