@@ -20,10 +20,22 @@ const words = line.split(' ')
   <div class="wrap">
     <p class="line" data-reveal>
       {
+        /*
+          A real space between the words, not a margin.
+
+          These were spaced with `.word + .word { margin-left }`, which looks
+          equivalent and is not: a margin is part of the box and survives a
+          line break, so every wrapped line began 0.28em in from the left while
+          the first line sat flush. The sentence wraps to three lines at most
+          widths, so two of the three were indented and the whole block read as
+          misaligned. A text node collapses at a break, which is the entire
+          reason whitespace works this way.
+        */
         words.map((word, i) => (
-          <span class="word" style={`--i:${i}`}>
-            {word}
-          </span>
+          <Fragment>
+            {i > 0 && ' '}
+            <span class="word" style={`--i:${i}`} set:text={word} />
+          </Fragment>
         ))
       }
     </p>
@@ -113,11 +125,6 @@ const words = line.split(' ')
        anyone who lands mid-page; the reveal is emphasis, not a gate. */
     color: var(--text-dimmer);
     transition: color var(--t-slow) ease;
-  }
-
-  /* The space between words has to survive inline-block. */
-  .word + .word {
-    margin-left: 0.28em;
   }
 
   .word.is-lit {
