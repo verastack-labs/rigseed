@@ -1,50 +1,71 @@
 ---
-import Mark from './Mark.astro'
+import Wordmark from './Wordmark.astro'
 
 const base = import.meta.env.BASE_URL
 
-// Only in-page links take part in scroll spy. Source leaves the site, so it
-// can never be the active section and must not be a target the indicator can
-// slide to.
-const sections = [
-  { id: 'screens', label: 'Screens' },
-  { id: 'theming', label: 'Theming' },
-  { id: 'download', label: 'Download' },
+// Source leaves the site, so it can never be the current page and must not be
+// a target the indicator can rest on.
+const pages = [
+  { href: `${base}/`, label: 'Home' },
+  { href: `${base}/screens/`, label: 'Screens' },
+  { href: `${base}/download/`, label: 'Download' },
 ]
+
+// Astro emits trailing slashes, but a link typed without one still resolves,
+// so both forms have to count as the same page.
+const here = Astro.url.pathname.replace(/\/+$/, '') || base
+const isCurrent = (href: string) => href.replace(/\/+$/, '') === here
 ---
 
 <header class="nav" data-nav>
   <div class="wrap bar">
-    <a class="brand" href={base}>
-      <Mark size={22} />
-      <span class="brand-name">rigseed</span>
-    </a>
+    <Wordmark size={1.45} />
 
     <nav class="links" aria-label="Primary" data-links>
       {
         /*
-        The indicator slides between links the way the app's View control
-        slides between Easy, Grid and List. Borrowed from the product rather
-        than from a trend, so the site and the app read as one thing.
+        The indicator rests under the current page and slides to whichever link
+        is hovered, then returns. It is the app's own View control, which
+        slides between Easy, Grid and List the same way; borrowed from the
+        product rather than from a trend.
       */
       }
       <span class="indicator" data-indicator aria-hidden="true"></span>
       {
-        sections.map((s) => (
-          <a href={`#${s.id}`} data-spy={s.id}>
-            {s.label}
+        pages.map((p) => (
+          <a
+            href={p.href}
+            data-page
+            class:list={{ 'is-current': isCurrent(p.href) }}
+            aria-current={isCurrent(p.href) ? 'page' : undefined}
+          >
+            {p.label}
           </a>
         ))
       }
-      <a class="external" href="https://github.com/verastack-labs/rigseed-app">Source</a>
+      <a class="external" href="https://github.com/verastack-labs/rigseed-app">
+        Source
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M7 17 17 7M9 7h8v8"></path>
+        </svg>
+      </a>
     </nav>
   </div>
 
   {
     /*
-    Scroll position as a progress bar, in the accent, the same shape the app
-    draws for a downloading torrent. It is the honest version of the
-    scroll-as-navigation idea: it says how far through you are and nothing else.
+    Reading position as a progress bar, in the accent, the same shape the app
+    draws for a downloading torrent.
   */
   }
   <div class="progress" aria-hidden="true"><span data-progress></span></div>
@@ -57,59 +78,45 @@ const sections = [
   const progress = document.querySelector<HTMLElement>('[data-progress]')
 
   if (nav && links && indicator && progress) {
-    // The bar never hides. It carries a progress line and a section
-    // indicator, and both are only worth drawing if they are on screen; a
-    // progress bar you have to scroll up to consult is decoration.
-    //
     // Low, so the surface arrives as soon as content starts passing under the
     // bar rather than after a deliberate scroll.
     const FLOOR = 24
 
-    const spies = Array.from(links.querySelectorAll<HTMLAnchorElement>('[data-spy]'))
-    let ticking = false
-    let active: HTMLAnchorElement | null = null
+    const pageLinks = Array.from(links.querySelectorAll<HTMLAnchorElement>('[data-page]'))
+    const home = pageLinks.find((a) => a.classList.contains('is-current')) ?? null
 
-    const moveIndicator = (to: HTMLAnchorElement | null) => {
-      if (to === active) return
-      active = to
-      spies.forEach((a) => a.classList.toggle('is-active', a === to))
+    // Measured from the element rather than assumed from an index, so the
+    // indicator stays correct when labels change width or the webfont loads
+    // late and reflows them.
+    const moveTo = (to: HTMLAnchorElement | null) => {
       if (!to) {
         indicator.style.opacity = '0'
         return
       }
-      // Measured from the element rather than assumed from an index, so the
-      // indicator stays correct when the labels change width or the font loads
-      // late and reflows them.
       indicator.style.opacity = '1'
       indicator.style.transform = `translateX(${to.offsetLeft}px)`
       indicator.style.width = `${to.offsetWidth}px`
     }
 
-    // Which section owns the viewport. The one whose top is nearest above the
-    // reading line wins, which behaves correctly for sections shorter than the
-    // viewport where an intersection ratio would flicker between two.
-    const currentSection = () => {
-      const line = window.scrollY + window.innerHeight * 0.35
-      let found: HTMLAnchorElement | null = null
-      for (const a of spies) {
-        const id = a.dataset.spy
-        const el = id ? document.getElementById(id) : null
-        if (el && el.offsetTop <= line) found = a
-      }
-      return found
-    }
+    pageLinks.forEach((a) => {
+      a.addEventListener('mouseenter', () => moveTo(a))
+      a.addEventListener('focus', () => moveTo(a))
+    })
+    links.addEventListener('mouseleave', () => moveTo(home))
+    links.addEventListener('focusout', (e) => {
+      if (!links.contains(e.relatedTarget as Node)) moveTo(home)
+    })
 
+    let ticking = false
     const update = () => {
       const y = window.scrollY
       const max = document.documentElement.scrollHeight - window.innerHeight
 
       nav.classList.toggle('is-stuck', y > FLOOR)
 
-      // Guard the divide: a page shorter than the viewport has max 0, and
-      // 0/0 is NaN, which silently leaves the bar at whatever it last was.
+      // Guard the divide: a page shorter than the viewport has max 0, and 0/0
+      // is NaN, which silently leaves the bar at whatever it last was.
       progress.style.transform = `scaleX(${max > 0 ? Math.min(y / max, 1) : 0})`
-
-      moveIndicator(currentSection())
 
       ticking = false
     }
@@ -124,14 +131,16 @@ const sections = [
       { passive: true },
     )
 
-    // Labels can change width when the webfont swaps in, which would leave the
-    // indicator sized for the fallback.
     window.addEventListener('resize', () => {
-      const held = active
-      active = null
-      moveIndicator(held)
+      moveTo(home)
+      update()
     })
 
+    // The webfont swap changes label widths, so the first measurement can be
+    // for the fallback. Re-measure once the real faces are in.
+    if (document.fonts?.ready) document.fonts.ready.then(() => moveTo(home))
+
+    moveTo(home)
     update()
   }
 </script>
@@ -148,9 +157,9 @@ const sections = [
   }
 
   .is-stuck {
-    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    background: color-mix(in srgb, var(--bg) 84%, transparent);
     border-bottom-color: var(--line);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(12px);
   }
 
   .bar {
@@ -158,29 +167,14 @@ const sections = [
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding-block: 0.875rem;
-  }
-
-  .brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--accent);
-    text-decoration: none;
-  }
-
-  .brand-name {
-    font-size: 0.9375rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: var(--text);
+    padding-block: 0.8rem;
   }
 
   .links {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.15rem;
     font-size: 0.9375rem;
   }
 
@@ -195,12 +189,19 @@ const sections = [
   }
 
   .links a:hover,
-  .links a.is-active {
+  .links a.is-current {
     color: var(--text);
   }
 
   .external {
-    margin-left: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: 0.4rem;
+  }
+
+  .external svg {
+    opacity: 0.55;
   }
 
   /* The segmented-control indicator. Spring on travel, plain ease on opacity,
@@ -248,11 +249,20 @@ const sections = [
     }
   }
 
-  @media (max-width: 46rem) {
-    /* The indicator has nothing to slide between once the in-page links are
-       gone, so it goes with them rather than sitting under a lone link. */
-    .links a[data-spy],
+  @media (max-width: 40rem) {
+    /* The indicator has nothing to rest under once the labels are this tight,
+       and Source is the one link that still earns its width. */
     .indicator {
+      display: none;
+    }
+    .links {
+      font-size: 0.875rem;
+    }
+    .links a {
+      padding-inline: 0.45rem;
+    }
+    /* The arrow is the first thing to go; the label still has to read. */
+    .external svg {
       display: none;
     }
   }
