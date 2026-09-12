@@ -47,13 +47,16 @@ const accents = [
     </span>
     {
       /*
-      A sibling of the pointer, not a child of it. The pointer is absolutely
-      positioned, so it is its own containing block, and a ring nested inside
-      it would take the pointer's offset once from the layout and once again
-      from its own transform.
+      Eight lines thrown outward from the point of contact. A sibling of the
+      pointer, not a child of it: the pointer is absolutely positioned, so it
+      is its own containing block, and a burst nested inside it would take the
+      pointer's offset once from the layout and once again from its own
+      transform.
     */
     }
-    <span class="ping" data-ping aria-hidden="true"></span>
+    <span class="burst" data-burst aria-hidden="true">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </span>
 
     <div class="controls">
       <div class="group" role="group" aria-label="Accent">
@@ -180,11 +183,11 @@ const accents = [
    */
   const panel = document.querySelector<HTMLElement>('[data-panel]')
   const ghost = document.querySelector<HTMLElement>('[data-ghost]')
-  const ping = document.querySelector<HTMLElement>('[data-ping]')
+  const burst = document.querySelector<HTMLElement>('[data-burst]')
   const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
   const coarse = window.matchMedia('(pointer: coarse)')
 
-  if (panel && ghost && ping && !calm.matches && !coarse.matches && swatches.length > 4) {
+  if (panel && ghost && burst && !calm.matches && !coarse.matches && swatches.length > 4) {
     const original = root.dataset.accent ?? 'dustblue'
     let cancelled = false
     let timers: number[] = []
@@ -197,11 +200,33 @@ const accents = [
       ghost.classList.remove('is-on')
     }
 
-    // Any real intent ends it. Pointer movement over the panel, a touch, a
-    // key, or a click anywhere in it.
+    /*
+     * Yielding to the visitor, carefully.
+     *
+     * A press or a keypress is unambiguous intent and cancels immediately,
+     * whenever it happens. Pointer movement is not: a cursor that merely
+     * happens to be resting over the panel when the page loads emits a move
+     * the instant anything reflows underneath it, and an earlier version of
+     * this cancelled the demonstration before it had drawn a single frame.
+     *
+     * So movement only counts once the demonstration is actually running, and
+     * only when the pointer has genuinely travelled. Ten pixels is further
+     * than jitter and shorter than a deliberate reach for a swatch.
+     */
     panel.addEventListener('pointerdown', stop)
-    panel.addEventListener('pointermove', stop, { once: true })
     window.addEventListener('keydown', stop, { once: true })
+
+    const watchPointer = () => {
+      let from: { x: number; y: number } | null = null
+      window.addEventListener('pointermove', (e) => {
+        if (cancelled) return
+        if (!from) {
+          from = { x: e.clientX, y: e.clientY }
+          return
+        }
+        if (Math.hypot(e.clientX - from.x, e.clientY - from.y) > 10) stop()
+      })
+    }
 
     const at = (el: HTMLElement) => {
       const p = panel.getBoundingClientRect()
@@ -216,21 +241,80 @@ const accents = [
       timers.push(window.setTimeout(run, ms) as unknown as number)
     }
 
-    const moveTo = (el: HTMLElement) => {
-      const { x, y } = at(el)
-      ghost.style.transform = `translate3d(${x}px, ${y}px, 0)`
-      ping.style.transform = `translate3d(${x}px, ${y}px, 0) scale(0.3)`
+    /*
+     * Travel along a sagging arc rather than a straight line.
+     *
+     * A hand moving a mouse between two points does not draw a straight line;
+     * it drops below the line of travel and comes back up, and the straight
+     * version is the single clearest tell that a cursor is scripted.
+     *
+     * The path is a quadratic bezier whose control point sits at the midpoint,
+     * pushed down by a fraction of the distance, so a short hop between
+     * neighbouring swatches barely bends and a long reach across the row
+     * visibly troughs. It is sampled into keyframes because interpolating
+     * between two or three transforms would give straight segments again,
+     * which is the thing being fixed. Sampling is uniform in t and the easing
+     * rides on the animation as a whole, so the speed curve stays correct
+     * while the shape comes from the geometry.
+     */
+    const SAMPLES = 20
+
+    let pos = { x: 0, y: 0 }
+    let flight: Animation | null = null
+
+    const moveTo = (el: HTMLElement, duration = 620) => {
+      const to = at(el)
+      const from = pos
+      pos = to
+
+      const dx = to.x - from.x
+      const dy = to.y - from.y
+      const dist = Math.hypot(dx, dy)
+      const sag = Math.min(dist * 0.3, 54)
+
+      const cx = (from.x + to.x) / 2
+      const cy = (from.y + to.y) / 2 + sag
+
+      const frames = []
+      for (let i = 0; i <= SAMPLES; i++) {
+        const t = i / SAMPLES
+        const u = 1 - t
+        const x = u * u * from.x + 2 * u * t * cx + t * t * to.x
+        const y = u * u * from.y + 2 * u * t * cy + t * t * to.y
+        frames.push({
+          offset: t,
+          transform: `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`,
+        })
+      }
+
+      flight?.cancel()
+      flight = ghost.animate(frames, {
+        duration,
+        easing: 'cubic-bezier(0.36, 0.16, 0.2, 1)',
+        fill: 'forwards',
+      })
+    }
+
+    // Placed without travelling, for the first appearance.
+    const placeAt = (el: HTMLElement) => {
+      pos = at(el)
+      flight?.cancel()
+      ghost.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`
     }
 
     const clickAt = (el: HTMLElement) => {
       const key = el.dataset.accentSet
       if (!key || cancelled) return
+      // The burst is invisible until it fires, so it is placed at the moment of
+      // contact rather than carried along the whole flight.
+      const { x, y } = at(el)
+      burst.style.transform = `translate3d(${x}px, ${y}px, 0)`
       ghost.classList.add('is-pressed')
-      ping.classList.remove('is-firing')
+      burst.classList.remove('is-firing')
       // Reading offsetWidth restarts the animation; without it the class is
       // removed and re-added inside one frame and nothing replays.
-      void ping.offsetWidth
-      ping.classList.add('is-firing')
+      void burst.offsetWidth
+      burst.classList.add('is-firing')
       applyAccent(key, false)
       after(150, () => ghost.classList.remove('is-pressed'))
     }
@@ -242,14 +326,19 @@ const accents = [
 
     const run = () => {
       if (cancelled) return
-      moveTo(swatches[0])
+      watchPointer()
+      // Arrives a little up and to the left of the row, so the first move is a
+      // reach into it rather than a slide along it.
+      placeAt(swatches[0])
+      ghost.style.transform = `translate3d(${pos.x - 46}px, ${pos.y - 34}px, 0)`
+      pos = { x: pos.x - 46, y: pos.y - 34 }
       ghost.classList.add('is-on')
 
-      after(420, () => moveTo(first))
-      after(1180, () => clickAt(first))
-      after(1900, () => moveTo(second))
-      after(2620, () => clickAt(second))
-      after(3400, () => {
+      after(420, () => moveTo(first, 760))
+      after(1260, () => clickAt(first))
+      after(1960, () => moveTo(second, 660))
+      after(2700, () => clickAt(second))
+      after(3480, () => {
         ghost.classList.remove('is-on')
         // Put back what the visitor actually had, so nothing was decided for
         // them. Late enough that the last swatch was clearly seen to work.
@@ -312,9 +401,11 @@ const accents = [
     /* The tip of the arrow sits at the coordinate, not its centre, which is
        where a real pointer's hotspot is. */
     margin: -2px 0 0 -2px;
-    transition:
-      transform 0.62s cubic-bezier(0.32, 0.72, 0.3, 1),
-      opacity var(--t-base) ease;
+    /* Only opacity here. The travel is driven by the Web Animations API,
+       because a sagging arc needs sampled keyframes and a CSS transition
+       between two transforms can only ever draw the straight line between
+       them. */
+    transition: opacity var(--t-base) ease;
   }
 
   .ghost.is-on {
@@ -332,32 +423,82 @@ const accents = [
     transform: translate(1px, 1px) scale(0.88);
   }
 
-  .ping {
+  /*
+   * The click. Eight short lines thrown outward from the point of contact,
+   * which is the gesture a tap makes in almost every interface that draws one,
+   * and it reads at a glance where a ring can be mistaken for a focus outline.
+   *
+   * The burst is a zero-size point and each line is positioned from its centre,
+   * so moving the burst is one transform and the lines never need repositioning
+   * individually.
+   */
+  .burst {
     position: absolute;
     top: 0;
     left: 0;
-    width: 34px;
-    height: 34px;
-    margin: -17px 0 0 -17px;
-    border-radius: 50%;
-    border: 1.5px solid var(--accent);
-    opacity: 0;
+    width: 0;
+    height: 0;
     pointer-events: none;
     transition: transform 0.62s cubic-bezier(0.32, 0.72, 0.3, 1);
   }
 
-  .ping.is-firing {
-    animation: ping 0.5s ease-out;
+  .burst i {
+    position: absolute;
+    left: -1px;
+    top: -1px;
+    width: 2px;
+    height: 7px;
+    border-radius: 1px;
+    background: var(--accent);
+    opacity: 0;
+    transform-origin: 50% 50%;
   }
 
-  @keyframes ping {
+  /* Rotation per line, held as a variable so the keyframes can carry the
+     travel without eight near-identical copies of it. */
+  .burst i:nth-child(1) {
+    --a: 0deg;
+  }
+  .burst i:nth-child(2) {
+    --a: 45deg;
+  }
+  .burst i:nth-child(3) {
+    --a: 90deg;
+  }
+  .burst i:nth-child(4) {
+    --a: 135deg;
+  }
+  .burst i:nth-child(5) {
+    --a: 180deg;
+  }
+  .burst i:nth-child(6) {
+    --a: 225deg;
+  }
+  .burst i:nth-child(7) {
+    --a: 270deg;
+  }
+  .burst i:nth-child(8) {
+    --a: 315deg;
+  }
+
+  .burst.is-firing i {
+    animation: spoke 0.44s cubic-bezier(0.18, 0.72, 0.32, 1) forwards;
+  }
+
+  /* The diagonals start a touch later, which stops the eight reading as one
+     expanding octagon and makes it read as a scatter. */
+  .burst.is-firing i:nth-child(2n) {
+    animation-delay: 0.04s;
+  }
+
+  @keyframes spoke {
     from {
-      opacity: 0.9;
-      scale: 0.35;
+      opacity: 0.95;
+      transform: rotate(var(--a)) translateY(-5px) scaleY(0.55);
     }
     to {
       opacity: 0;
-      scale: 1.15;
+      transform: rotate(var(--a)) translateY(-17px) scaleY(1.15);
     }
   }
 
@@ -366,7 +507,8 @@ const accents = [
   @media (prefers-reduced-motion: reduce) {
     .ghost,
     .ghost svg,
-    .ping {
+    .burst,
+    .burst i {
       transition: none;
       animation: none;
     }
