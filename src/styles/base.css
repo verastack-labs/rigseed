@@ -189,6 +189,26 @@ section {
 }
 
 /*
+ * Everything set in the script face is held until that face has loaded, then
+ * revealed together. visibility rather than display or opacity: the text keeps
+ * its box, so holding it back moves nothing around it, and it is still there
+ * for a screen reader and for anything reading the document.
+ *
+ * The class is added by the inline script in the head, which also reveals
+ * everything after a second and a half regardless, so a font that never
+ * arrives costs a substituted face rather than a missing name.
+ */
+.wordmark-name,
+.name-script {
+  visibility: hidden;
+}
+
+.wordmark-ready .wordmark-name,
+.wordmark-ready .name-script {
+  visibility: visible;
+}
+
+/*
  * The product's name, set in the script, inside running text.
  *
  * The system rule is that Yellowtail is reserved for the name and appears
