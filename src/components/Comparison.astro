@@ -1,0 +1,274 @@
+---
+import { Image } from 'astro:assets'
+import stock from '../assets/screens/00-qbittorrent-stock.png'
+import mine from '../assets/screens/00-rigseed-same-frame.png'
+
+/*
+ * The before and after.
+ *
+ * Both captures are cropped to the same 16:10 frame and resized to the same
+ * 1600x1000, because a divider between two different aspect ratios is lying
+ * about what it is comparing: one side would be stretched relative to the
+ * other and every difference the reader sees would be partly that.
+ *
+ * The left is the real stock client, version in the title bar, running the
+ * same four Linux ISOs. The right is rigseed against its built-in sample data.
+ * Neither is a mock and neither has been retouched.
+ */
+---
+
+<section id="comparison" class="wrap">
+  <h2>One of these is from this decade.</h2>
+  <p class="lede">
+    Stock qBittorrent on the left, rigseed on the right, the same Ubuntu, Debian and Arch images
+    downloading in both. Drag the handle, or use the arrow keys.
+  </p>
+
+  <figure class="frame" data-compare>
+    {
+      /*
+      The after sits underneath at full width and the before is clipped over
+      it, so the slider reveals rather than covers. That way the thing being
+      argued for is the layer that is always complete.
+    */
+    }
+    <div class="layer after">
+      <Image
+        src={mine}
+        alt="rigseed showing the same transfers in its own interface: a sidebar of status filters, cards for each torrent, and a live speed graph."
+        widths={[800, 1200, 1600]}
+        sizes="(min-width: 68rem) 62rem, 100vw"
+        quality={90}
+        loading="lazy"
+      />
+    </div>
+
+    <div class="layer before" data-before>
+      <Image
+        src={stock}
+        alt="Stock qBittorrent 5.0 showing four Linux ISO torrents in a dense table of eleven columns."
+        widths={[800, 1200, 1600]}
+        sizes="(min-width: 68rem) 62rem, 100vw"
+        quality={90}
+        loading="lazy"
+      />
+    </div>
+
+    <span class="seam" data-seam aria-hidden="true">
+      <span class="grip">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m9 6-5 6 5 6M15 6l5 6-5 6"></path>
+        </svg>
+      </span>
+    </span>
+
+    <span class="tag left" aria-hidden="true">qBittorrent 5.0</span>
+    <span class="tag right" aria-hidden="true">rigseed</span>
+
+    {
+      /*
+      A real range input does the work. It carries keyboard support, a focus
+      ring and an accessible name without any of it being rebuilt, and with
+      scripting off the divider simply rests at the halfway mark with both
+      halves visible.
+    */
+    }
+    <input
+      class="control"
+      type="range"
+      min="0"
+      max="100"
+      value="50"
+      step="0.1"
+      aria-label="Reveal more of qBittorrent or more of rigseed"
+      data-range
+    />
+  </figure>
+
+  <figcaption class="note">
+    Captured on one machine, minutes apart, against the same swarms. The rigseed side runs its
+    built-in sample data, which is why the two lists are not identical.
+  </figcaption>
+</section>
+
+<script>
+  let controller: AbortController | null = null
+
+  const setup = () => {
+    controller?.abort()
+    controller = new AbortController()
+    const { signal } = controller
+
+    const frame = document.querySelector<HTMLElement>('[data-compare]')
+    const range = document.querySelector<HTMLInputElement>('[data-range]')
+    if (!frame || !range) return
+
+    // One custom property drives the clip and the seam together, so the two can
+    // never disagree about where the division is.
+    const apply = () => frame.style.setProperty('--split', `${range.value}%`)
+
+    range.addEventListener('input', apply, { signal })
+    apply()
+
+    /*
+     * Dragging anywhere on the image, not just on the handle.
+     *
+     * The range input is stretched across the whole frame and made invisible,
+     * so a press anywhere sets the value natively and the browser's own drag
+     * tracking takes over. Nothing here computes a position from a pointer
+     * event, which is the part that usually goes wrong at the edges and on
+     * touch.
+     */
+  }
+
+  document.addEventListener('astro:page-load', setup)
+</script>
+
+<style>
+  h2 {
+    max-width: 18ch;
+  }
+
+  .lede {
+    margin-top: 1rem;
+    max-width: 56ch;
+  }
+
+  .frame {
+    --split: 50%;
+    position: relative;
+    margin: clamp(2rem, 5vw, 3rem) 0 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    overflow: hidden;
+    background: var(--surface);
+    /* The captures are 16:10 and both sides share it, so the box can state it
+       rather than waiting for an image to load and reflow the page. */
+    aspect-ratio: 16 / 10;
+    box-shadow: 0 1.5rem 4rem -2rem color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  .layer {
+    position: absolute;
+    inset: 0;
+  }
+
+  .layer :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Clipped from the right, so the left edge of the before never moves. */
+  .before {
+    clip-path: inset(0 calc(100% - var(--split)) 0 0);
+  }
+
+  .seam {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: var(--split);
+    width: 2px;
+    background: var(--accent);
+    transform: translateX(-1px);
+    pointer-events: none;
+  }
+
+  .grip {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-on);
+    box-shadow: 0 0.25rem 1rem color-mix(in srgb, var(--shadow-color) 80%, transparent);
+  }
+
+  .tag {
+    position: absolute;
+    top: 0.75rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--line);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.625rem;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    pointer-events: none;
+  }
+
+  .tag.left {
+    left: 0.75rem;
+  }
+
+  .tag.right {
+    right: 0.75rem;
+  }
+
+  /*
+   * The input covers the whole frame and is invisible. The browser handles
+   * pointer capture, touch, and the keyboard; nothing here derives a position
+   * from an event, which is where this control usually breaks at the edges.
+   */
+  .control {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    appearance: none;
+    background: transparent;
+    cursor: ew-resize;
+  }
+
+  .control::-webkit-slider-thumb {
+    appearance: none;
+    width: 2.5rem;
+    height: 100%;
+    cursor: ew-resize;
+  }
+
+  .control::-moz-range-thumb {
+    width: 2.5rem;
+    height: 100%;
+    border: 0;
+    background: transparent;
+    cursor: ew-resize;
+  }
+
+  /* The ring lands on the frame, because the input itself has no visible box
+     of its own to draw one around. */
+  .control:focus-visible {
+    outline: none;
+  }
+
+  .frame:has(.control:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .note {
+    margin-top: 1rem;
+    max-width: 64ch;
+    color: var(--text-dimmer);
+    font-size: 0.8125rem;
+  }
+</style>
