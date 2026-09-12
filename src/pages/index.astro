@@ -2,22 +2,32 @@
 import Base from '../layouts/Base.astro'
 import Nav from '../components/Nav.astro'
 import Hero from '../components/Hero.astro'
-import Screens from '../components/Screens.astro'
+import Proof from '../components/Proof.astro'
 import Theming from '../components/Theming.astro'
-import Download from '../components/Download.astro'
+import Close from '../components/Close.astro'
 import Footer from '../components/Footer.astro'
+
+const version = '0.1.1'
 ---
 
 <Base
   title="rigseed, a desktop client for qBittorrent"
   description="rigseed puts a modern interface on qBittorrent, driving the daemon over the Web API it already exposes. Windows, macOS and Linux."
-  version="0.1.1"
+  version={version}
   releaseUrl="https://github.com/verastack-labs/rigseed-app/releases/latest"
 >
+  {
+    /*
+    The scroll is paced rather than stacked. The hero is loud and the surface
+    runs off its bottom edge; Proof is dense and quiet, all hairlines and small
+    type; Theming is the one interactive moment, where the page itself changes
+    colour under the reader; then the close is loud again and anchors the end.
+  */
+  }
   <Nav />
   <Hero />
-  <Screens />
+  <Proof />
   <Theming />
-  <Download version="0.1.1" />
+  <Close version={`v${version}`} />
   <Footer />
 </Base>
