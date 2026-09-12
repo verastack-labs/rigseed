@@ -120,8 +120,15 @@ const platforms: { key: string; label: string; lines: Line[] }[] = [
         {p.lines.map((line) => (
           <span class:list={['line', line.kind]}>
             {line.kind === 'cmd' && <span class="prompt">$</span>}
-            {line.text}
-            {'\n'}
+            {/*
+              set:text rather than an expression in the markup. The text is
+              whitespace-sensitive, and an expression sits inside whatever
+              indentation the formatter decides on, which the browser then
+              renders: every row came out four rows tall, carrying the source
+              file's own indentation. set:text writes textContent, so there is
+              nowhere for that whitespace to come from.
+            */}
+            <span class="text" set:text={line.text} />
           </span>
         ))}
       </pre>
@@ -291,7 +298,15 @@ const platforms: { key: string; label: string; lines: Line[] }[] = [
     line-height: 1.8;
     /* Long commands scroll here rather than widening the page. */
     overflow-x: auto;
-    white-space: pre;
+    /*
+     * Normal here and pre on the rows, rather than pre on the whole block.
+     * Inside a pre the whitespace between two markup lines is content too, so
+     * every row came with a blank one after it and the newline had to be
+     * written as an expression the formatter could not parse. Each row is
+     * already its own block; only what sits inside a row needs its spacing
+     * preserved.
+     */
+    white-space: normal;
     color: var(--text-dim);
   }
 
@@ -311,6 +326,8 @@ const platforms: { key: string; label: string; lines: Line[] }[] = [
    */
   .line {
     display: block;
+    /* A blank line is spacing in the output and has to keep its height. */
+    min-height: 1lh;
     transition:
       opacity var(--t-base) ease,
       transform var(--t-base) var(--spring-wide);
@@ -324,6 +341,12 @@ const platforms: { key: string; label: string; lines: Line[] }[] = [
   .body.is-armed .line.is-in {
     opacity: 1;
     transform: none;
+  }
+
+  /* The only whitespace-sensitive part, and it holds exactly one text node.
+     Column alignment in output like "Algorithm  Hash" depends on it. */
+  .text {
+    white-space: pre;
   }
 
   .prompt {
