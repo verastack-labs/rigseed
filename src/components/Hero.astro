@@ -1,5 +1,6 @@
 ---
 import { Image } from 'astro:assets'
+import HeroAmbient from './HeroAmbient.astro'
 import dark from '../assets/screens/02-transfers-dark.png'
 
 const base = import.meta.env.BASE_URL
@@ -11,6 +12,8 @@ const version = 'v0.1.1'
 ---
 
 <header class="hero">
+  <HeroAmbient />
+
   <div class="wrap inner">
     {
       /*
@@ -180,6 +183,10 @@ const version = 'v0.1.1'
   }
 
   .inner {
+    /* Above the ambient layer, which is absolutely positioned at z-index 0
+       across the whole section. */
+    position: relative;
+    z-index: 1;
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -235,6 +242,8 @@ const version = 'v0.1.1'
   }
 
   .stage-wrap {
+    position: relative;
+    z-index: 1;
     width: min(100% - 2.5rem, 62rem);
     margin: clamp(3rem, 7vw, 4.5rem) auto 0;
   }
