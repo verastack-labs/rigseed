@@ -3,6 +3,8 @@ import Base from '../layouts/Base.astro'
 import Nav from '../components/Nav.astro'
 import Hero from '../components/Hero.astro'
 import Proof from '../components/Proof.astro'
+import Statement from '../components/Statement.astro'
+import Pipeline from '../components/Pipeline.astro'
 import Theming from '../components/Theming.astro'
 import Close from '../components/Close.astro'
 import Footer from '../components/Footer.astro'
@@ -20,13 +22,18 @@ const version = '0.1.1'
     /*
     The scroll is paced rather than stacked. The hero is loud and the surface
     runs off its bottom edge; Proof is dense and quiet, all hairlines and small
-    type; Theming is the one interactive moment, where the page itself changes
-    colour under the reader; then the close is loud again and anchors the end.
+    type; Statement is the breath after it, one sentence and a great deal of
+    quiet; Pipeline is the one diagram, carrying the only ambient motion on the
+    page after the hero; Theming is the interactive moment, where the page
+    itself changes colour under the reader; then the close is loud again and
+    anchors the end.
   */
   }
   <Nav />
   <Hero />
   <Proof />
+  <Statement />
+  <Pipeline />
   <Theming />
   <Close version={`v${version}`} />
   <Footer />

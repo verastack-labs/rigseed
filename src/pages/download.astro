@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro'
 import Nav from '../components/Nav.astro'
 import Download from '../components/Download.astro'
+import Terminal from '../components/Terminal.astro'
 import Footer from '../components/Footer.astro'
 
 const version = '0.1.1'
@@ -24,5 +25,34 @@ const version = '0.1.1'
   }
   <Nav />
   <Download version={version} />
+
+  {
+    /*
+    The commands, after the files. Somebody who came for a download gets it
+    first; the terminal is for the next question, which is how to check what
+    they just got.
+  */
+  }
+  <section class="wrap terminal-section">
+    <p class="eyebrow">Verify it</p>
+    <h2>Every file has a published hash.</h2>
+    <p class="lede">
+      Nothing is code signed yet, so the checksum is how you confirm the file you have is the file
+      the build produced. These are the real hashes for {version}.
+    </p>
+    <Terminal version={version} />
+  </section>
   <Footer />
 </Base>
+
+<style>
+  .terminal-section :global(h2) {
+    max-width: 20ch;
+  }
+
+  .terminal-section :global(.lede) {
+    margin-top: 1rem;
+    margin-bottom: clamp(1.75rem, 4vw, 2.5rem);
+    max-width: 58ch;
+  }
+</style>

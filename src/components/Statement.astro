@@ -1,0 +1,138 @@
+---
+/*
+ * One sentence, lit word by word as it goes past.
+ *
+ * The pattern is the scroll text reveal those component libraries ship. The
+ * usual version starts every word at zero opacity and is therefore invisible
+ * to anyone who does not scroll, to a crawler that does not run scripts, and
+ * in the still frame a shared link is rendered from. This one starts at a
+ * legible dim and brightens, so the sentence is readable the moment it is on
+ * screen and the reveal is emphasis rather than a gate.
+ *
+ * It earns a section because it is the argument the rest of the page keeps
+ * making in detail, said once in full.
+ */
+const line = 'Your torrents already work. The client is the part that never did.'
+const words = line.split(' ')
+---
+
+<section class="statement">
+  <div class="wrap">
+    <p class="line" data-reveal>
+      {
+        words.map((word, i) => (
+          <span class="word" style={`--i:${i}`}>
+            {word}
+          </span>
+        ))
+      }
+    </p>
+  </div>
+</section>
+
+<script>
+  /*
+   * Progress through the sentence is taken from where the block sits in the
+   * viewport, not from an observer threshold, because the words light
+   * continuously rather than switching on at one line.
+   */
+  let controller: AbortController | null = null
+
+  const setup = () => {
+    controller?.abort()
+    controller = new AbortController()
+    const { signal } = controller
+
+    const line = document.querySelector<HTMLElement>('[data-reveal]')
+    if (!line) return
+
+    const words = Array.from(line.querySelectorAll<HTMLElement>('.word'))
+    if (!words.length) return
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      // Lit, all of it, and never touched again.
+      words.forEach((w) => w.classList.add('is-lit'))
+      return
+    }
+
+    let ticking = false
+    const update = () => {
+      ticking = false
+      const rect = line.getBoundingClientRect()
+
+      // 0 when the block's top reaches three quarters down the viewport, 1 when
+      // it has risen to a quarter. The sentence finishes lighting before it
+      // reaches the top, so nobody reads the last word as still pending.
+      const start = window.innerHeight * 0.8
+      const end = window.innerHeight * 0.28
+      const progress = (start - rect.top) / (start - end)
+      const lit = Math.round(Math.min(Math.max(progress, 0), 1) * words.length)
+
+      words.forEach((w, i) => w.classList.toggle('is-lit', i < lit))
+    }
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (ticking) return
+        ticking = true
+        requestAnimationFrame(update)
+      },
+      { passive: true, signal },
+    )
+    window.addEventListener('resize', update, { signal })
+    update()
+  }
+
+  document.addEventListener('astro:page-load', setup)
+</script>
+
+<style>
+  .statement {
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    /* More room than any other section. It is one sentence, and the quiet
+       either side of it is most of what makes it land. */
+    padding-block: clamp(5rem, 14vw, 10rem);
+  }
+
+  .line {
+    margin: 0;
+    max-width: 22ch;
+    font-size: clamp(1.75rem, 4.6vw, 3.25rem);
+    line-height: 1.16;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+
+  .word {
+    display: inline-block;
+    /* The resting state is legible, not invisible. A sentence parked at zero
+       opacity is absent from a shared link's preview, from a crawler, and from
+       anyone who lands mid-page; the reveal is emphasis, not a gate. */
+    color: var(--text-dimmer);
+    transition: color var(--t-slow) ease;
+  }
+
+  /* The space between words has to survive inline-block. */
+  .word + .word {
+    margin-left: 0.28em;
+  }
+
+  .word.is-lit {
+    color: var(--text);
+  }
+
+  /* The full stop in the middle is the turn in the sentence, so the second
+     half arrives in the accent rather than in the text colour. */
+  .word:nth-child(n + 5).is-lit {
+    color: var(--accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .word {
+      transition: none;
+    }
+  }
+</style>
