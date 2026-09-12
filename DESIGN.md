@@ -201,7 +201,17 @@ work to be thrown away.
 
 ## What is not here yet
 
-- Light mode is implemented and correct but has had far less scrutiny than dark.
+- **Accent text on a light ground does not reach 4.5:1 in every hue.** Measured across all
+  eight accents on all three pages, the small text that is coloured with the accent itself
+  (the node sublabels in the pipeline, the torrent names and speeds in the sample card, the
+  inline link on the Download page) lands between 3.3:1 and 4.4:1 in light mode on the warmer
+  hues. Amber and mustard are the worst; dustblue, the default, passes. It is a real failure
+  against the normal-text bar and it is recorded here rather than fixed, because the only fix
+  is to re-value the accent ramp, and `site-theme.css` exists on the standing rule that the
+  site changes the base neutrals and never the accents: those are qBittorrent's real palette,
+  the theming section says so, and quietly darkening them for the site would be a lie in a
+  place nobody would think to check. Fixing it properly means either a separate on-light text
+  variant of each accent or not colouring small text with the accent at all.
 - Two findings from the finish review stay open by decision rather than by oversight: the hero
   still prints its endpoint line, and the Download page is still built on cards rather than
   hairlines. Both are argued for above; neither is an accident.

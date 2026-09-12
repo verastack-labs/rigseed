@@ -38,7 +38,12 @@
      doing its job. */
   --text: #f8fafd;
   --text-dim: #adbccf;
-  --text-dimmer: #7d8da3;
+  /* Lifted from #7d8da3, which cleared 4.5:1 on the page ground but sat at
+     4.47 on a raised surface under the warmer accents, so the same token
+     passed or failed depending on which colour the visitor had picked. Worst
+     case across all eight accents is now 4.96 on a surface and 6.3 on the
+     ground. */
+  --text-dimmer: #8695ab;
 
   --accent-on: #05080e;
   --shadow-color: rgb(0 2 8 / 0.8);
@@ -75,7 +80,14 @@
 
   --text: #070c15;
   --text-dim: #4e5a6c;
-  --text-dimmer: #79879a;
+  /* Was #79879a, which measured 3.03:1 on the ground and 3.5:1 on a surface:
+     below the 4.5:1 that normal-size text needs, in every accent, on every
+     page. It carried the endpoint lines, the figure captions, the diagram
+     labels and the code-signing caveat, so the light theme was failing on
+     exactly the text that has to be legible to be worth printing. Worst case
+     is now 4.57 on the ground and 5.27 on a surface, and it stays clearly
+     lighter than --text-dim at 5.83 so the three-step hierarchy survives. */
+  --text-dimmer: #5d6a7c;
 
   --accent-on: #ffffff;
   --shadow-color: rgb(16 28 48 / 0.16);
