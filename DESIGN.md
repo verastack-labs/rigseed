@@ -59,11 +59,23 @@ rules out anything keyed to a specific colour relationship.
 
 ## Type
 
-| Role                                                      | Face           |
-| --------------------------------------------------------- | -------------- |
-| Sentences, headings, interface                            | Inter Variable |
-| Data: sizes, speeds, ratios, hashes, endpoints, filenames | JetBrains Mono |
-| The product's name, and nothing else                      | Yellowtail     |
+| Role                                                      | Face                    |
+| --------------------------------------------------------- | ----------------------- |
+| Headings, `h1` to `h3`                                    | Archivo 600, `-0.033em` |
+| Sentences and interface                                   | Inter Variable          |
+| Data: sizes, speeds, ratios, hashes, endpoints, filenames | JetBrains Mono          |
+| The product's name, and nothing else                      | Yellowtail              |
+
+**Headings are Archivo, sentences are Inter, and the split is deliberate.** The app uses Inter
+throughout and the site keeps it for body copy, because the two should read as one product. But
+the app never made a _display_ decision, so that one is the site's to make. Inter at a headline
+size is body copy enlarged: drawn to be invisible, which is exactly right for a paragraph and
+exactly wrong for the one line somebody reads first. Archivo has squarer counters and takes a
+much tighter fit at large sizes without the letters colliding.
+
+The tracking is the other half. `-0.02em` is the safe default; `-0.033em` is what the craft bar
+this site was measured against actually sets, and the difference between the two is most of why
+a headline reads as considered rather than as a default.
 
 **Monospace means data** is inherited from the app and kept. A number, a path or a filename
 not set in mono is a bug.
@@ -93,6 +105,14 @@ radius, the hierarchy has been flattened.
 **Shadow means the thing floats.** The hero surface and the contracted nav pill have shadows.
 Nothing else does.
 
+**No kickers.** A small uppercase label above a heading is banned outright. It repeats what the
+heading already says, in a size nobody reads, and it is the most reliable single tell of a page
+assembled from a template. Eight of them shipped before the finish review caught them, and the
+`eyebrow` prop came off `PageHead` with them so no caller can reintroduce one.
+
+The `.eyebrow` class survives for one job: naming a list, in the footer's columns. A label that
+titles a set of links is a heading. A label that titles a heading is a kicker.
+
 **The aura is the homepage's opening and closing move.** An accent-tinted radial behind the
 hero and behind the close, mixed from the live accent token so it retints with everything
 else. It appears on no other page, deliberately: repeating it on every utility page spends it
@@ -120,6 +140,7 @@ Motion is authored once per idea and orchestrated, rather than scattered across 
 | Pipeline        | A gradient pulse travelling each wire                        | The two directions are the two protocols, not variety               |
 | Statement       | One sentence lit word by word on scroll                      | Emphasis on the page's whole argument, said once                    |
 | Terminal        | Install output revealed line by line                         | Pacing, so the commands read in the order you would run them        |
+| Comparison      | A draggable divider between two captures                     | The strongest argument the project has, and it needs no copy        |
 
 **Every one of these is off or static under `prefers-reduced-motion`,** and the information
 each carries survives. The nav still changes state, the progress line still fills, the sprites
@@ -172,9 +193,15 @@ work to be thrown away.
 - **Warnings are blunt and sit where they will be met:** unsigned builds, the untested macOS
   build, the glibc floor.
 - **No invented numbers.** No rating in the structured data, no user counts, no benchmarks.
+- **A comparison shares one frame, or it is not a comparison.** Both halves of the before and
+  after are cropped to the same 16:10 and resized to the same 1600x1000. Left at their native
+  1.653 and 1.600, one side would be stretched relative to the other and part of every
+  difference a reader saw would be that rather than the design. The stock capture is a real
+  client on a throwaway profile with its version visible, never a mock and never retouched.
 
 ## What is not here yet
 
-- The finish review against this system has not been run.
 - Light mode is implemented and correct but has had far less scrutiny than dark.
-- There is no `social.png`, and the layout references one.
+- Two findings from the finish review stay open by decision rather than by oversight: the hero
+  still prints its endpoint line, and the Download page is still built on cards rather than
+  hairlines. Both are argued for above; neither is an accident.
