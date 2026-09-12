@@ -282,9 +282,16 @@ const onDownload = isCurrent(`${base}/download/`)
     padding: 0.45rem 0;
     border: 1px solid transparent;
     border-radius: 999px;
+    /*
+     * Eased, not sprung. --spring overshoots by 56% and --spring-wide by 20%,
+     * which is right for a control answering a click and wrong for the frame
+     * of the page moving under the reader: the bar arrived at its width and
+     * then wobbled. The tokens are the app's and stay untouched; which one this
+     * site calls is the site's decision.
+     */
     transition:
-      max-width var(--t-slow) var(--spring-wide),
-      padding var(--t-slow) var(--spring-wide),
+      max-width var(--t-slow) var(--ease),
+      padding var(--t-slow) var(--ease),
       background-color var(--t-base) ease,
       border-color var(--t-base) ease,
       box-shadow var(--t-base) ease;
@@ -397,7 +404,7 @@ const onDownload = isCurrent(`${base}/download/`)
   .cta-slot {
     display: grid;
     grid-template-columns: 0fr;
-    transition: grid-template-columns var(--t-slow) var(--spring-wide);
+    transition: grid-template-columns var(--t-slow) var(--ease);
   }
 
   .is-stuck .cta-slot {
@@ -421,7 +428,7 @@ const onDownload = isCurrent(`${base}/download/`)
     opacity: 0;
     transition:
       opacity var(--t-base) ease,
-      padding-inline var(--t-slow) var(--spring-wide),
+      padding-inline var(--t-slow) var(--ease),
       background-color var(--t-fast) ease;
     padding-inline: 0;
   }

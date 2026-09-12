@@ -109,7 +109,7 @@ const platforms = [
   <p class="foot">
     Every asset on the release carries a matching <code>.sha256</code>, written by the workflow that
     built it. The release also carries the corresponding source for the bundled qBittorrent, which
-    is what its licence requires and why it is offered from the same page as the binary.
+    is what its licence requires and why it is offered from the same page as the binary.{' '}
     <a href={`${repo}/releases/latest`}>See all files on the release</a>.
   </p>
 
@@ -133,6 +133,16 @@ const platforms = [
     gap: 1rem;
     margin-top: clamp(2rem, 5vw, 3rem);
     grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    /*
+     * Each card is as tall as what it holds.
+     *
+     * Stretched to a common height, Linux sets the height for all three: it has
+     * three downloads and the longest warning, so macOS with one download and
+     * two sentences carried a hand's depth of empty card above its disclosure.
+     * Ragged bottoms are honest here, because the three genuinely have
+     * different amounts to say.
+     */
+    align-items: start;
   }
 
   .card {
@@ -197,7 +207,10 @@ const platforms = [
   .warning {
     font-size: 0.8125rem;
     color: var(--text-dim);
-    border-left: 2px solid var(--warn);
+    /* 1px, like every other rule in the system. A thicker coloured stripe is
+       the one ornament the craft floor singles out, and the warning carries
+       its weight in the words rather than in the border. */
+    border-left: 1px solid var(--warn);
     padding-left: 0.75rem;
     margin: 0;
   }
