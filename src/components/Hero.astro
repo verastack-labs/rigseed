@@ -32,7 +32,9 @@ const version = 'v0.1.1'
       the name appears" is a system rule and not a detail of this one section.
     */
     }
-    <h1><span class="name-script">rigseed</span> puts a modern interface on the daemon you already trust.</h1>
+    <h1>
+      <span class="name-script">rigseed</span> puts a modern interface on the daemon you already trust.
+    </h1>
 
     <p class="lede">
       It drives qBittorrent over the Web API the daemon already exposes. The engine underneath is
@@ -52,13 +54,16 @@ const version = 'v0.1.1'
 
   {
     /*
-    The surface runs off the bottom of the hero rather than sitting in a
-    finished box. The crop is the argument: the app is bigger than the frame
-    the page gave it, and the reader scrolls to see the rest.
+    The surface is shown whole and tilted back, then straightens as you scroll.
+    It was cropped to 16/9 before, which cut the floating action button off the
+    bottom right corner: the crop was removing a real control from a picture
+    whose entire job is showing the real thing. Laying it back instead keeps
+    every pixel of the capture and still gives the section something to do
+    between the fold and the next heading.
   */
   }
-  <div class="stage-wrap">
-    <div class="stage">
+  <div class="stage-wrap" data-stage-wrap>
+    <div class="stage" data-stage>
       <Image
         src={dark}
         alt="rigseed showing six torrents in grid view, with a sidebar of status filters, categories and tags, and a live download and upload graph."
@@ -84,12 +89,59 @@ const version = 'v0.1.1'
   </div>
 </header>
 
+<script>
+  /*
+   * The capture lies back at rest and stands up as you scroll past it.
+   *
+   * Driven from scrollY against a fixed range rather than from the element's
+   * own intersection, because the element is in the first viewport on load and
+   * an observer-based version has nothing to observe until the reader has
+   * already moved. The starting angle is small enough that the screenshot is
+   * completely legible before anybody scrolls at all, which is the point: this
+   * is a resting state, not a reveal waiting to be triggered.
+   */
+  const stage = document.querySelector<HTMLElement>('[data-stage]')
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
+  const narrow = window.matchMedia('(max-width: 48rem)')
+
+  if (stage && !calm.matches) {
+    const START = 14
+    const RANGE = 420
+
+    let ticking = false
+    const update = () => {
+      ticking = false
+      if (narrow.matches) {
+        stage.style.removeProperty('--tilt')
+        return
+      }
+      const t = Math.min(window.scrollY / RANGE, 1)
+      // Eased out, so most of the straightening happens early and the last few
+      // degrees do not drag on for another two hundred pixels.
+      const eased = 1 - Math.pow(1 - t, 2)
+      stage.style.setProperty('--tilt', String(START * (1 - eased)))
+    }
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (ticking) return
+        ticking = true
+        requestAnimationFrame(update)
+      },
+      { passive: true },
+    )
+    window.addEventListener('resize', update)
+    update()
+  }
+</script>
+
 <style>
   .hero {
     position: relative;
-    /* No bottom padding. The surface is meant to meet the next section, not
-       float above a gap. */
-    padding-block: clamp(3.5rem, 8vw, 6rem) 0;
+    /* The surface is a finished object again rather than something running off
+       an edge, so the section closes properly underneath it. */
+    padding-block: clamp(3.5rem, 8vw, 6rem) clamp(3rem, 7vw, 5rem);
     overflow: hidden;
   }
 
@@ -158,7 +210,6 @@ const version = 'v0.1.1'
     margin-top: 2.25rem;
   }
 
-
   .endpoints {
     margin-top: 1.75rem;
     color: var(--text-dimmer);
@@ -170,21 +221,29 @@ const version = 'v0.1.1'
     margin: clamp(3rem, 7vw, 4.5rem) auto 0;
   }
 
-  /* 16/9 against a 16/10 capture, so the bottom tenth of the window is cut by
-     the frame. Small enough to read as a crop rather than as a missing piece. */
+  .stage-wrap {
+    /* The vanishing point. Far enough back that the tilt reads as depth rather
+       than as a fisheye, which is what a short perspective does to something
+       this wide. */
+    perspective: 2200px;
+  }
+
   .stage {
     position: relative;
-    aspect-ratio: 16 / 9;
     overflow: hidden;
     border: 1px solid var(--line);
-    border-bottom: 0;
-    border-radius: var(--r-card) var(--r-card) 0 0;
+    border-radius: var(--r-card);
     background: var(--surface);
+    /* Hinged along its top edge, so it stands up rather than pivoting about
+       its middle. --tilt is written by the scroll handler. */
+    transform-origin: 50% 0%;
+    transform: rotateX(calc(var(--tilt, 14) * 1deg));
+    will-change: transform;
     /* The aura. Accent-tinted rather than black, so the image sits in a pool
        of its own colour instead of on a drop shadow. */
     box-shadow:
-      0 -1px 0 color-mix(in srgb, var(--text) 6%, transparent) inset,
-      0 2rem 5rem color-mix(in srgb, var(--accent) 20%, transparent);
+      0 -1px 0 color-mix(in srgb, var(--text) 8%, transparent) inset,
+      0 2rem 5rem color-mix(in srgb, var(--accent) 22%, transparent);
   }
 
   .shot {
@@ -193,12 +252,13 @@ const version = 'v0.1.1'
     display: block;
   }
 
-  @media (max-width: 48rem) {
-    /* The crop costs more than it says at this width, where the window is
-       already small. Show the whole capture. */
+  /* No tilt where it would cost more than it gives: a narrow screen is mostly
+     scroll and the foreshortening eats the small type, and under reduced
+     motion a transform driven by scroll position is precisely the thing being
+     opted out of. Both land on the flat, finished state. */
+  @media (max-width: 48rem), (prefers-reduced-motion: reduce) {
     .stage {
-      aspect-ratio: auto;
+      transform: none;
     }
   }
-
 </style>
