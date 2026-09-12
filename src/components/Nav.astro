@@ -15,60 +15,88 @@ const pages = [
 // so both forms have to count as the same page.
 const here = Astro.url.pathname.replace(/\/+$/, '') || base
 const isCurrent = (href: string) => href.replace(/\/+$/, '') === here
+
+// The nav grows a Download button on scroll, so on the download page itself it
+// would be offering the page you are on.
+const onDownload = isCurrent(`${base}/download/`)
 ---
 
+{
+  /*
+  Reading progress, pinned to the top edge of the viewport rather than to the
+  bar. The bar becomes a rounded pill on scroll, and a 2px line clipped by a
+  999px radius survives as a sliver in the middle of the pill, which is not a
+  progress bar. Up here it stays full width and legible in both states.
+*/
+}
+<div class="progress" aria-hidden="true"><span data-progress></span></div>
+
 <header class="nav" data-nav>
-  <div class="wrap bar">
-    <Wordmark size={1.45} />
+  <div class="rail">
+    {
+      /*
+      The shell contracts. At the top of a page it is the full content width,
+      transparent, part of the page. Once content starts passing underneath it
+      draws itself in: narrower, bordered, blurred, lifted, and it grows the
+      primary action at the moment the hero's copy of that action leaves the
+      screen. The bar earns the space it takes by taking it only when it is
+      carrying something.
+    */
+    }
+    <div class="shell" data-shell>
+      <span class="mark"><Wordmark /></span>
 
-    <nav class="links" aria-label="Primary" data-links>
-      {
-        /*
-        The indicator rests under the current page and slides to whichever link
-        is hovered, then returns. It is the app's own View control, which
-        slides between Easy, Grid and List the same way; borrowed from the
-        product rather than from a trend.
-      */
-      }
-      <span class="indicator" data-indicator aria-hidden="true"></span>
-      {
-        pages.map((p) => (
-          <a
-            href={p.href}
-            data-page
-            class:list={{ 'is-current': isCurrent(p.href) }}
-            aria-current={isCurrent(p.href) ? 'page' : undefined}
+      <nav class="links" aria-label="Primary" data-links>
+        {
+          /*
+          The indicator rests under the current page and follows hover or
+          focus, then returns. It is the app's own View control, which slides
+          between Easy, Grid and List exactly this way; borrowed from the
+          product rather than from a trend.
+        */
+        }
+        <span class="indicator" data-indicator aria-hidden="true"></span>
+        {
+          pages.map((p) => (
+            <a
+              href={p.href}
+              data-page
+              class:list={{ 'is-current': isCurrent(p.href) }}
+              aria-current={isCurrent(p.href) ? 'page' : undefined}
+            >
+              {p.label}
+            </a>
+          ))
+        }
+        <a class="external" href="https://github.com/verastack-labs/rigseed-app">
+          Source
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
           >
-            {p.label}
-          </a>
-        ))
-      }
-      <a class="external" href="https://github.com/verastack-labs/rigseed-app">
-        Source
-        <svg
-          width="11"
-          height="11"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.4"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M7 17 17 7M9 7h8v8"></path>
-        </svg>
-      </a>
-    </nav>
-  </div>
+            <path d="M7 17 17 7M9 7h8v8"></path>
+          </svg>
+        </a>
+      </nav>
 
-  {
-    /*
-    Reading position as a progress bar, in the accent, the same shape the app
-    draws for a downloading torrent.
-  */
-  }
-  <div class="progress" aria-hidden="true"><span data-progress></span></div>
+      {
+        !onDownload && (
+          <div class="cta-slot" data-cta>
+            <a class="cta" href={`${base}/download/`} tabindex="-1" data-cta-link>
+              Download
+            </a>
+          </div>
+        )
+      }
+    </div>
+  </div>
 </header>
 
 <script>
@@ -76,11 +104,14 @@ const isCurrent = (href: string) => href.replace(/\/+$/, '') === here
   const links = document.querySelector<HTMLElement>('[data-links]')
   const indicator = document.querySelector<HTMLElement>('[data-indicator]')
   const progress = document.querySelector<HTMLElement>('[data-progress]')
+  const ctaLink = document.querySelector<HTMLAnchorElement>('[data-cta-link]')
 
   if (nav && links && indicator && progress) {
-    // Low, so the surface arrives as soon as content starts passing under the
-    // bar rather than after a deliberate scroll.
-    const FLOOR = 24
+    // Two thresholds rather than one, so the bar does not flicker between
+    // states when a trackpad leaves the page hovering on the boundary.
+    const ON = 32
+    const OFF = 12
+    let stuck = false
 
     const pageLinks = Array.from(links.querySelectorAll<HTMLAnchorElement>('[data-page]'))
     const home = pageLinks.find((a) => a.classList.contains('is-current')) ?? null
@@ -112,11 +143,19 @@ const isCurrent = (href: string) => href.replace(/\/+$/, '') === here
       const y = window.scrollY
       const max = document.documentElement.scrollHeight - window.innerHeight
 
-      nav.classList.toggle('is-stuck', y > FLOOR)
-
       // Guard the divide: a page shorter than the viewport has max 0, and 0/0
       // is NaN, which silently leaves the bar at whatever it last was.
       progress.style.transform = `scaleX(${max > 0 ? Math.min(y / max, 1) : 0})`
+
+      const next = stuck ? y > OFF : y > ON
+      if (next !== stuck) {
+        stuck = next
+        nav.classList.toggle('is-stuck', stuck)
+        // A hidden control must not be a tab stop. The slot is zero width when
+        // the bar is at rest, so a keyboard user would otherwise tab to
+        // something with no visible focus ring and no apparent location.
+        if (ctaLink) ctaLink.tabIndex = stuck ? 0 : -1
+      }
 
       ticking = false
     }
@@ -138,7 +177,7 @@ const isCurrent = (href: string) => href.replace(/\/+$/, '') === here
 
     // The webfont swap changes label widths, so the first measurement can be
     // for the fallback. Re-measure once the real faces are in.
-    if (document.fonts?.ready) document.fonts.ready.then(() => moveTo(home))
+    if (document.fonts?.ready) void document.fonts.ready.then(() => moveTo(home))
 
     moveTo(home)
     update()
@@ -146,28 +185,81 @@ const isCurrent = (href: string) => href.replace(/\/+$/, '') === here
 </script>
 
 <style>
+  .progress {
+    position: fixed;
+    inset: 0 0 auto;
+    height: 2px;
+    z-index: 12;
+    pointer-events: none;
+  }
+
+  .progress span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+  }
+
   .nav {
     position: sticky;
     top: 0;
     z-index: 10;
-    transition:
-      background-color var(--t-base) ease,
-      border-color var(--t-base) ease;
-    border-bottom: 1px solid transparent;
   }
 
-  .is-stuck {
-    background: color-mix(in srgb, var(--bg) 84%, transparent);
-    border-bottom-color: var(--line);
-    backdrop-filter: blur(12px);
+  .rail {
+    padding: 0.5rem 1.25rem;
   }
 
-  .bar {
+  .shell {
+    position: relative;
+    width: 100%;
+    max-width: 68rem;
+    margin-inline: auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding-block: 0.8rem;
+    padding: 0.45rem 0.55rem 0.45rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    transition:
+      max-width var(--t-slow) var(--spring-wide),
+      padding var(--t-slow) var(--spring-wide),
+      background-color var(--t-base) ease,
+      border-color var(--t-base) ease,
+      box-shadow var(--t-base) ease;
+  }
+
+  /*
+   * The engaged state. Glass rather than a flat panel: the blurred ground, a
+   * 1px inset highlight along the top edge where a real lens would catch the
+   * light, and a shadow that sits under it rather than around it. The
+   * highlight is what stops it reading as a blurred rectangle.
+   */
+  .is-stuck .shell {
+    max-width: 54rem;
+    padding-inline: 0.6rem 0.5rem;
+    background: color-mix(in srgb, var(--surface) 72%, transparent);
+    border-color: var(--line);
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    box-shadow:
+      0 1px 0 color-mix(in srgb, var(--text) 9%, transparent) inset,
+      0 10px 30px -12px color-mix(in srgb, var(--shadow-color, #000) 90%, transparent);
+  }
+
+  .mark {
+    flex: none;
+    display: inline-flex;
+    --wm-size: 1.45rem;
+  }
+
+  /* The wordmark gives up a little size to the button it is now sharing the
+     bar with. The transition lives on the wordmark itself, so setting the
+     variable here is enough to animate it. */
+  .is-stuck .mark {
+    --wm-size: 1.25rem;
   }
 
   .links {
@@ -222,36 +314,80 @@ const isCurrent = (href: string) => href.replace(/\/+$/, '') === here
       opacity var(--t-fast) ease;
   }
 
-  .progress {
-    position: absolute;
-    inset: auto 0 -1px;
-    height: 2px;
-    overflow: hidden;
+  /*
+   * The button reveals by growing its own track from nothing, which is what
+   * keeps the links from jumping sideways when it arrives. A 0fr to 1fr grid
+   * animates a width the content decides, without anybody hard-coding it.
+   */
+  .cta-slot {
+    display: grid;
+    grid-template-columns: 0fr;
+    transition: grid-template-columns var(--t-slow) var(--spring-wide);
   }
 
-  .progress span {
-    display: block;
-    height: 100%;
+  .is-stuck .cta-slot {
+    grid-template-columns: 1fr;
+  }
+
+  .cta {
+    overflow: hidden;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding-block: 0.4rem;
+    border-radius: 999px;
     background: var(--accent);
-    transform-origin: 0 50%;
-    transform: scaleX(0);
+    color: var(--accent-on);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    opacity: 0;
+    transition:
+      opacity var(--t-base) ease,
+      padding-inline var(--t-slow) var(--spring-wide),
+      background-color var(--t-fast) ease;
+    padding-inline: 0;
+  }
+
+  .is-stuck .cta {
+    opacity: 1;
+    padding-inline: 1rem;
+  }
+
+  .is-stuck .cta:hover {
+    background: color-mix(in srgb, var(--accent) 88%, var(--text));
   }
 
   /*
-   * Under reduced motion nothing slides. The indicator still moves and the
-   * progress line still fills, because both carry information, but they change
-   * state rather than animate between them.
+   * Under reduced motion the bar still changes state, because the state
+   * carries information: it says content has scrolled past and the action is
+   * available. It changes instantly rather than travelling there.
    */
   @media (prefers-reduced-motion: reduce) {
-    .nav,
-    .indicator {
+    .shell,
+    .mark,
+    .indicator,
+    .cta-slot,
+    .cta {
       transition: none;
     }
   }
 
+  @media (max-width: 52rem) {
+    /* The button is the first thing to go. Download is already one of the
+       three links at this width, so the bar would be offering it twice. */
+    .cta-slot {
+      display: none;
+    }
+  }
+
   @media (max-width: 40rem) {
-    /* The indicator has nothing to rest under once the labels are this tight,
-       and Source is the one link that still earns its width. */
+    .rail {
+      padding-inline: 0.75rem;
+    }
+    /* Nothing left to rest under once the labels are this tight. */
     .indicator {
       display: none;
     }
@@ -261,7 +397,7 @@ const isCurrent = (href: string) => href.replace(/\/+$/, '') === here
     .links a {
       padding-inline: 0.45rem;
     }
-    /* The arrow is the first thing to go; the label still has to read. */
+    /* The arrow goes before the label does. */
     .external svg {
       display: none;
     }

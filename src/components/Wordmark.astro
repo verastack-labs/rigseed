@@ -2,14 +2,21 @@
 import Mark from './Mark.astro'
 
 interface Props {
-  /** Cap height of the script, in rem. The seedling scales from it. */
+  /**
+   * Cap height of the script, in rem. The seedling scales from it.
+   *
+   * Optional, and deliberately so: left off, the size comes from --wm-size on
+   * an ancestor, which is the only way a parent can animate it. An inline
+   * style would win over the parent's rule and the nav's wordmark would never
+   * shrink.
+   */
   size?: number
   /** Renders a span rather than a link, for the footer and the nav's own page. */
   as?: 'a' | 'span'
   class?: string
 }
 
-const { size = 1.5, as = 'a', class: className } = Astro.props
+const { size, as = 'a', class: className } = Astro.props
 const base = import.meta.env.BASE_URL
 const Tag = as
 ---
@@ -25,9 +32,9 @@ const Tag = as
 <Tag
   class:list={['wordmark', className]}
   href={as === 'a' ? base : undefined}
-  style={`--wm-size:${size}rem`}
+  style={size ? `--wm-size:${size}rem` : undefined}
 >
-  <Mark size={Math.round(size * 15)} class="wordmark-leaf" />
+  <Mark size={Math.round((size ?? 1.5) * 15)} class="wordmark-leaf" />
   <span class="wordmark-name">rigseed</span>
 </Tag>
 
@@ -36,10 +43,14 @@ const Tag = as
     display: inline-flex;
     align-items: center;
     gap: 0.45em;
-    font-size: var(--wm-size);
+    font-size: var(--wm-size, 1.5rem);
     color: var(--accent);
     text-decoration: none;
     line-height: 1;
+    /* So an ancestor changing --wm-size animates rather than snaps. The
+       custom property itself cannot transition, but the font-size it resolves
+       to can. */
+    transition: font-size var(--t-slow) var(--spring-wide);
   }
 
   .wordmark-name {
@@ -70,6 +81,7 @@ const Tag = as
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .wordmark,
     .wordmark-name,
     .wordmark-leaf {
       transition: none;
