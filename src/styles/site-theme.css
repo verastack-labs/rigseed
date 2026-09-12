@@ -24,21 +24,24 @@
   /* Blue-biased rather than neutral grey. Every one of these has more blue
      than red in it, so the ground itself is the first place the colour comes
      from and the accent is not doing that work alone. */
-  --base-bg: #0a0d13;
-  --base-sidebar: #070910;
-  --base-surface: #121722;
-  --base-surface2: #1a2130;
-  --border: #2b3547;
+  --base-bg: #05080e;
+  --base-sidebar: #03050a;
+  --base-surface: #101724;
+  --base-surface2: #1a2333;
+  --border: #35435c;
 
-  /* The contrast. #f2f5fa on #0a0d13 is a long way past the old pairing, and
+  /* The contrast. #f8fafd on #05080e is a long way past the old pairing, and
      the two dim tones are pulled up with it so the hierarchy keeps the same
-     shape rather than just getting further apart at the top. */
-  --text: #f2f5fa;
-  --text-dim: #9dabbf;
-  --text-dimmer: #6d7c91;
+     shape rather than just getting further apart at the top. The border is
+     pulled up hardest: on a ground this dark a hairline is the only thing
+     separating two panels, and a border nobody can see is a border that is not
+     doing its job. */
+  --text: #f8fafd;
+  --text-dim: #adbccf;
+  --text-dimmer: #7d8da3;
 
-  --accent-on: #07090d;
-  --shadow-color: rgb(2 5 12 / 0.72);
+  --accent-on: #05080e;
+  --shadow-color: rgb(0 2 8 / 0.8);
 
   /* Lower on the grounds and higher on the raised surfaces than the app uses.
      A near-black ground that takes 7% accent goes muddy; a surface sitting on
@@ -70,9 +73,9 @@
   --base-surface2: #f7f9fc;
   --border: #d3dae4;
 
-  --text: #0e1420;
-  --text-dim: #5a6678;
-  --text-dimmer: #8492a5;
+  --text: #070c15;
+  --text-dim: #4e5a6c;
+  --text-dimmer: #79879a;
 
   --accent-on: #ffffff;
   --shadow-color: rgb(16 28 48 / 0.16);
