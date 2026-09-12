@@ -187,3 +187,28 @@ section {
     transform: none;
   }
 }
+
+/*
+ * The product's name, set in the script, inside running text.
+ *
+ * The system rule is that Yellowtail is reserved for the name and appears
+ * nowhere else. It lives here rather than in whichever component happens to
+ * need it first, because that rule is about the whole site.
+ *
+ * A script face carries a much smaller x-height than a grotesque at the same
+ * point size, so matching them numerically makes the script look shrunken
+ * beside its neighbours. It is set larger and nudged down so its x-height and
+ * baseline land where the surrounding line already is.
+ */
+.name-script {
+  font-family: 'Yellowtail', 'Brush Script MT', cursive;
+  font-size: 1.24em;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--accent);
+  /* The descender on the g would otherwise reach into the line below. */
+  line-height: 0.9;
+  display: inline-block;
+  transform: translateY(0.06em);
+  padding-right: 0.06em;
+}
