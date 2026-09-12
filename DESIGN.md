@@ -117,6 +117,9 @@ Motion is authored once per idea and orchestrated, rather than scattered across 
 | Theming         | A guided pointer arcs to two swatches and clicks them        | The swatch row reads as a legend until something moves              |
 | Download cards  | A pointer-tracked gradient border                            | Makes a static grid feel addressable                                |
 | Hero background | Eleven recycling glyph sprites                               | Atmosphere, in the product's own iconography                        |
+| Pipeline        | A gradient pulse travelling each wire                        | The two directions are the two protocols, not variety               |
+| Statement       | One sentence lit word by word on scroll                      | Emphasis on the page's whole argument, said once                    |
+| Terminal        | Install output revealed line by line                         | Pacing, so the commands read in the order you would run them        |
 
 **Every one of these is off or static under `prefers-reduced-motion`,** and the information
 each carries survives. The nav still changes state, the progress line still fills, the sprites
@@ -125,6 +128,13 @@ are still there. State changes; it just does not travel to get there.
 **Nothing is hidden waiting to be revealed.** Sections animate from a visible resting state or
 not at all. A page whose first viewport is blank until you scroll has not loaded, it has
 armed.
+
+This one is easy to get backwards, and it was, twice in one branch. The rule in practice: a
+reveal has to **opt an element into being hidden** before it may hide it, rather than the
+stylesheet hiding everything and the script revealing it. The terminal's lines are visible
+until its own script adds `is-armed`; the statement's words rest at a legible dim rather than
+at zero. Written the other way round, both are blank to anyone with scripting off and in the
+still frame a shared link renders from.
 
 ## Behaviour
 

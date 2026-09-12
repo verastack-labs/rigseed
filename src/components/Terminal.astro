@@ -1,0 +1,363 @@
+---
+/*
+ * An install, typed out.
+ *
+ * The pattern those component libraries ship as a terminal component, with one
+ * change that matters: every command here is real and every line of output is
+ * what the real command prints. A terminal that types invented output is a
+ * cartoon of a terminal, and this page's whole job is being checkable.
+ *
+ * Three platforms behind a segmented control, and the control is the app's own
+ * View control, which is why it looks like the one in the nav.
+ */
+
+interface Props {
+  version: string
+}
+const { version } = Astro.props
+
+type Line = { kind: 'cmd' | 'out' | 'ok' | 'note'; text: string }
+
+/*
+ * The real published checksums for this release, not stand-ins.
+ *
+ * An earlier draft printed plausible-looking ellipsised hashes, which is
+ * exactly the thing this page exists not to do: a visitor could have compared
+ * one against their own file, found it different, and concluded their download
+ * was tampered with. If these ever drift from the release they are worse than
+ * absent, so they are derived from one version constant and checked whenever
+ * it changes.
+ *
+ * Windows is shown uppercase because that is how Get-FileHash prints it.
+ */
+const MAC_SHA = 'ac1e09c268581a46bae5739f6343a7a68cc52697da3c7ab877a703ae4ec0c7b6'
+const WIN_SHA = 'E7037EFF7E46E2A8B88A0B6A38E849C792E60ECB706A54432744D470BDE84AE7'
+
+const platforms: { key: string; label: string; lines: Line[] }[] = [
+  {
+    key: 'linux',
+    label: 'Linux',
+    lines: [
+      { kind: 'note', text: '# Debian, Ubuntu and anything built on them' },
+      { kind: 'cmd', text: `sudo apt install ./rigseed_${version}_amd64.deb` },
+      { kind: 'out', text: 'Setting up rigseed (' + version + ') ...' },
+      { kind: 'note', text: '' },
+      { kind: 'note', text: '# Check it against the published hash first' },
+      { kind: 'cmd', text: `sha256sum -c rigseed_${version}_amd64.deb.sha256` },
+      { kind: 'ok', text: `rigseed_${version}_amd64.deb: OK` },
+      { kind: 'note', text: '' },
+      { kind: 'note', text: '# Or run it without installing anything' },
+      { kind: 'cmd', text: `chmod +x rigseed_${version}_amd64.AppImage` },
+      { kind: 'cmd', text: `./rigseed_${version}_amd64.AppImage` },
+    ],
+  },
+  {
+    key: 'macos',
+    label: 'macOS',
+    lines: [
+      { kind: 'note', text: '# Apple Silicon only' },
+      { kind: 'cmd', text: `shasum -a 256 rigseed_${version}_aarch64.dmg` },
+      { kind: 'out', text: `${MAC_SHA}  rigseed_${version}_aarch64.dmg` },
+      { kind: 'note', text: '' },
+      { kind: 'note', text: '# Compare that against the .sha256 on the release,' },
+      { kind: 'note', text: '# then open the disk image and drag rigseed across.' },
+      { kind: 'note', text: '' },
+      { kind: 'note', text: '# Gatekeeper refuses an unsigned app on first open.' },
+      { kind: 'note', text: '# Right-click it, choose Open, then confirm.' },
+    ],
+  },
+  {
+    key: 'windows',
+    label: 'Windows',
+    lines: [
+      { kind: 'note', text: '# PowerShell' },
+      {
+        kind: 'cmd',
+        text: `Get-FileHash .\\rigseed_${version}_x64-setup.exe -Algorithm SHA256`,
+      },
+      { kind: 'out', text: 'Algorithm  Hash' },
+      { kind: 'out', text: '---------  ----' },
+      { kind: 'out', text: `SHA256     ${WIN_SHA}` },
+      { kind: 'note', text: '' },
+      { kind: 'note', text: '# Compare that against the .sha256 on the release,' },
+      { kind: 'note', text: '# then run the installer.' },
+      { kind: 'note', text: '' },
+      { kind: 'note', text: '# SmartScreen warns about an unsigned installer.' },
+      { kind: 'note', text: '# Choose More info, then Run anyway.' },
+    ],
+  },
+]
+---
+
+<div class="term" data-term>
+  <div class="bar">
+    <div class="tabs" role="tablist" aria-label="Platform">
+      {
+        platforms.map((p, i) => (
+          <button
+            class:list={['tab', { 'is-on': i === 0 }]}
+            role="tab"
+            type="button"
+            aria-selected={i === 0 ? 'true' : 'false'}
+            data-term-tab={p.key}
+          >
+            {p.label}
+          </button>
+        ))
+      }
+    </div>
+    <span class="host mono">rigseed {version}</span>
+  </div>
+
+  {
+    platforms.map((p, i) => (
+      <pre
+        class:list={['body', 'mono', { 'is-on': i === 0 }]}
+        data-term-panel={p.key}
+        aria-label={`Installing on ${p.label}`}
+        tabindex="0"
+      >
+        {p.lines.map((line) => (
+          <span class:list={['line', line.kind]}>
+            {line.kind === 'cmd' && <span class="prompt">$</span>}
+            {line.text}
+            {'\n'}
+          </span>
+        ))}
+      </pre>
+    ))
+  }
+</div>
+
+<script>
+  /*
+   * The typing is a reveal of text that is already in the document, one line at
+   * a time, not characters appended to an empty node. So the commands are in
+   * the markup for a crawler, selectable and copyable at any point during the
+   * animation, and complete for anyone who never sees it run.
+   *
+   * It plays once per panel, the first time that panel is on screen. Switching
+   * back to a panel that has already played shows it finished rather than
+   * replaying, because a terminal that retypes itself every time you glance at
+   * it is a toy.
+   */
+  let controller: AbortController | null = null
+
+  const setup = () => {
+    controller?.abort()
+    controller = new AbortController()
+    const { signal } = controller
+
+    const term = document.querySelector<HTMLElement>('[data-term]')
+    if (!term) return
+
+    const tabs = Array.from(term.querySelectorAll<HTMLButtonElement>('[data-term-tab]'))
+    const panels = Array.from(term.querySelectorAll<HTMLElement>('[data-term-panel]'))
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const played = new Set<string>()
+
+    const play = (panel: HTMLElement) => {
+      const key = panel.dataset.termPanel ?? ''
+      if (played.has(key)) return
+      played.add(key)
+
+      // Nothing is hidden until here, so a panel that never plays is simply a
+      // finished terminal rather than an empty box.
+      if (calm.matches) return
+
+      const lines = Array.from(panel.querySelectorAll<HTMLElement>('.line'))
+      panel.classList.add('is-armed')
+
+      // Blank lines are spacing. They cost almost nothing, so the rhythm stays
+      // with the lines that carry text.
+      const cost = (line: HTMLElement) => (line.textContent?.trim() ? 150 : 40)
+
+      let at = 0
+      for (const line of lines) {
+        const timer = window.setTimeout(() => line.classList.add('is-in'), at)
+        signal.addEventListener('abort', () => clearTimeout(timer))
+        at += cost(line)
+      }
+    }
+
+    const show = (key: string) => {
+      tabs.forEach((t) => {
+        const on = t.dataset.termTab === key
+        t.classList.toggle('is-on', on)
+        t.setAttribute('aria-selected', String(on))
+      })
+      panels.forEach((p) => {
+        const on = p.dataset.termPanel === key
+        p.classList.toggle('is-on', on)
+        if (on) play(p)
+      })
+    }
+
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => show(t.dataset.termTab ?? ''), { signal })
+      t.addEventListener(
+        'keydown',
+        (e) => {
+          const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+          if (!d) return
+          e.preventDefault()
+          const next = tabs[(i + d + tabs.length) % tabs.length]
+          next.focus()
+          show(next.dataset.termTab ?? '')
+        },
+        { signal },
+      )
+    })
+
+    // Held until it is looked at, so the first panel does not finish typing
+    // somewhere above the fold before anyone arrives.
+    const watcher = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          watcher.disconnect()
+          const open = panels.find((p) => p.classList.contains('is-on'))
+          if (open) play(open)
+        }
+      },
+      { threshold: 0.35 },
+    )
+    watcher.observe(term)
+    signal.addEventListener('abort', () => watcher.disconnect())
+  }
+
+  document.addEventListener('astro:page-load', setup)
+</script>
+
+<style>
+  .term {
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    background: var(--sidebar-bg);
+    overflow: hidden;
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0.15rem;
+  }
+
+  /* The app's View control, which is why it looks like the one in the nav. */
+  .tab {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--r-nav);
+    background: transparent;
+    color: var(--text-dim);
+    font: inherit;
+    font-size: 0.8125rem;
+    transition:
+      background-color var(--t-fast) ease,
+      color var(--t-fast) ease;
+  }
+
+  .tab:hover {
+    color: var(--text);
+  }
+
+  .tab.is-on {
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  .host {
+    font-size: 0.6875rem;
+    color: var(--text-dimmer);
+    padding-right: 0.35rem;
+  }
+
+  .body {
+    display: none;
+    margin: 0;
+    padding: 1rem 1.1rem 1.25rem;
+    font-size: 0.78rem;
+    line-height: 1.8;
+    /* Long commands scroll here rather than widening the page. */
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--text-dim);
+  }
+
+  .body.is-on {
+    display: block;
+  }
+
+  /*
+   * Visible by default, and hidden only once something is actually going to
+   * reveal it.
+   *
+   * Written the other way round first, with the lines resting at zero opacity,
+   * which meant the entire terminal was blank to anyone with scripting off and
+   * to anything that does not run scripts at all. The reveal now has to opt a
+   * panel in before it may hide anything, so the failure mode is "it did not
+   * animate" rather than "there is nothing there".
+   */
+  .line {
+    display: block;
+    transition:
+      opacity var(--t-base) ease,
+      transform var(--t-base) var(--spring-wide);
+  }
+
+  .body.is-armed .line {
+    opacity: 0;
+    transform: translateY(0.22em);
+  }
+
+  .body.is-armed .line.is-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  .prompt {
+    color: var(--accent);
+    padding-right: 0.55em;
+    user-select: none;
+  }
+
+  .line.cmd {
+    color: var(--text);
+  }
+
+  .line.out {
+    color: var(--text-dim);
+  }
+
+  .line.ok {
+    color: var(--ok);
+  }
+
+  .line.note {
+    color: var(--text-dimmer);
+  }
+
+  /*
+   * With motion off the lines are simply there. The typing is pacing, and
+   * pacing is exactly what this setting asks to be given all at once.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .line,
+    .body.is-armed .line {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+</style>
