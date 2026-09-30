@@ -196,11 +196,16 @@ work to be thrown away.
 - **A quotation is verbatim or it is copy.** The testimonial keeps the tester's own capitals,
   his "REALLY" and his "FLAWLESS", because tidying them into sentence case turns a quotation
   into a rewrite, and the roughness is most of what marks it as somebody's actual words rather
-  than something written to sound like them. One voice is set as one voice: no grid of three
-  cards holding one real quote and two padded out of things nobody quite said, and a line
-  underneath stating what it is, one person on one distribution. The fault he found stays in
-  the section. A report of a clean sweep is less believable than one that is not, and this page
-  argues throughout that its claims are checkable.
+  than something written to sound like them. One voice is set as one voice: a named, linkable
+  person quoted exactly is the honest form of this, and no grid of three cards holds one real
+  quote beside two padded out of things nobody said.
+- **Honesty is a rule about claims, not an instruction to volunteer weaknesses.** The first
+  version of the testimonial carried a line announcing that exactly one person outside the
+  project had tested it and naming the bug he found. Every word of that was true and none of it
+  belonged there. The rule above forbids implying a chorus that does not exist; it does not ask
+  the page to publish a user count or a defect list, neither of which the section claims
+  anything about. Faults go to the issue tracker, which is linked from every page. Applied the
+  other way round, the rule stops being honesty and becomes a page arguing against itself.
 - **A comparison shares one frame, or it is not a comparison.** Both halves of the before and
   after are cropped to the same 16:10 and resized to the same 1600x1000. Left at their native
   1.653 and 1.600, one side would be stretched relative to the other and part of every
