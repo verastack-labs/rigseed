@@ -193,6 +193,14 @@ work to be thrown away.
 - **Warnings are blunt and sit where they will be met:** unsigned builds, the untested macOS
   build, the glibc floor.
 - **No invented numbers.** No rating in the structured data, no user counts, no benchmarks.
+- **A quotation is verbatim or it is copy.** The testimonial keeps the tester's own capitals,
+  his "REALLY" and his "FLAWLESS", because tidying them into sentence case turns a quotation
+  into a rewrite, and the roughness is most of what marks it as somebody's actual words rather
+  than something written to sound like them. One voice is set as one voice: no grid of three
+  cards holding one real quote and two padded out of things nobody quite said, and a line
+  underneath stating what it is, one person on one distribution. The fault he found stays in
+  the section. A report of a clean sweep is less believable than one that is not, and this page
+  argues throughout that its claims are checkable.
 - **A comparison shares one frame, or it is not a comparison.** Both halves of the before and
   after are cropped to the same 16:10 and resized to the same 1600x1000. Left at their native
   1.653 and 1.600, one side would be stretched relative to the other and part of every

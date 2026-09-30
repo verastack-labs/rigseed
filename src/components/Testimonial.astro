@@ -1,0 +1,163 @@
+---
+/*
+ * The first outside test, in the tester's own words.
+ *
+ * One voice, set as one voice. The instinct with a testimonial section is a
+ * grid of three cards, and with a single report that grid either sits
+ * two-thirds empty or gets padded out with things somebody did not quite say.
+ * Nothing here pretends to be a chorus: it is one person, named, on one
+ * distribution, and the section says so underneath rather than leaving the
+ * reader to assume a volume of praise that does not exist.
+ *
+ * The quotes are verbatim, capitals included. "REALLY" and "FLAWLESS" are his
+ * emphasis, not a designer's, and leaving them as typed is the difference
+ * between a quotation and a rewrite. It also happens to be the tell that these
+ * are somebody's actual messages rather than copy written to sound like them.
+ *
+ * The line about the bug he found stays in. A testimonial that reports a clean
+ * sweep is less believable than one that does not, and this page's whole
+ * argument is that its claims are checkable.
+ */
+
+/* Verbatim, from the messages. Do not tidy the capitals. */
+const quote =
+  'I was REALLY trying to find something that bugs me or irritates or is somewhat not working… found pretty much nothing.'
+const second = 'Everything in my experience on my Debian machine has been FLAWLESS.'
+
+const person = {
+  name: 'Artto Aunap',
+  role: 'GNU/Linux automation developer',
+  url: 'https://artto.name',
+  /* For the monogram. Two letters, because a circle is not a nameplate. */
+  initials: 'AA',
+}
+---
+
+<section id="testimonial" class="wrap">
+  <figure class="block">
+    <blockquote>
+      <p class="lead">{quote}</p>
+      <p class="second">{second}</p>
+    </blockquote>
+
+    <figcaption class="by">
+      {
+        /*
+        A monogram rather than a photo for now. The avatar is the one element
+        here that is not load-bearing: the name, the role and the link do the
+        attributing, and a circle with two letters in it reads as a person
+        without the page depending on an image to say so.
+      */
+      }
+      <span class="avatar" aria-hidden="true">{person.initials}</span>
+
+      <span class="who">
+        <a class="name" href={person.url} rel="noopener noreferrer" target="_blank">
+          {person.name}
+        </a>
+        <span class="role">{person.role}</span>
+      </span>
+    </figcaption>
+  </figure>
+
+  <p class="note">
+    The first test of rigseed by somebody other than its author, run on Debian. He also found one
+    layout fault in the speed limits dialog, which is the half of the report that was actually worth
+    having.
+  </p>
+</section>
+
+<style>
+  .block {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.5rem, 3vw, 2.25rem);
+    /* A rule above and below rather than a card. The section is a held breath
+       between the theming demonstration and the download, and a bordered box
+       would make it one more panel in a page that already has several. */
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding-block: clamp(2.5rem, 6vw, 4rem);
+  }
+
+  blockquote {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 30ch;
+  }
+
+  .lead {
+    margin: 0;
+    font-family: 'Archivo', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    font-size: clamp(1.4rem, 3.4vw, 2.1rem);
+    font-weight: 600;
+    letter-spacing: -0.028em;
+    line-height: 1.2;
+    text-wrap: balance;
+    color: var(--text);
+  }
+
+  .second {
+    margin: 0;
+    max-width: 46ch;
+    font-size: 0.9375rem;
+    color: var(--text-dim);
+  }
+
+  .by {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .avatar {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--surface2);
+    color: var(--accent);
+    font-family: 'Archivo', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .who {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .name {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: none;
+    width: fit-content;
+    border-bottom: 1px solid transparent;
+    transition: border-color var(--t-fast) ease;
+  }
+
+  .name:hover {
+    border-bottom-color: var(--accent);
+  }
+
+  .role {
+    font-size: 0.8125rem;
+    color: var(--text-dimmer);
+  }
+
+  .note {
+    margin-top: 1.25rem;
+    max-width: 62ch;
+    font-size: 0.8125rem;
+    color: var(--text-dimmer);
+  }
+</style>
