@@ -11,6 +11,14 @@ on:
       - '**/*.md'
       - LICENSE
   workflow_dispatch:
+  # Sent by the app repository's release workflow after it publishes.
+  #
+  # The changelog is fetched from the GitHub releases at build time, so it is
+  # only as current as the last build, and this site builds on its own pushes.
+  # Without this, publishing a release would leave the changelog a version
+  # behind until somebody happened to touch the site.
+  repository_dispatch:
+    types: [app-released]
 
 permissions:
   contents: read
@@ -44,6 +52,13 @@ jobs:
 
       - name: Build
         run: pnpm run build
+        env:
+          # The changelog page fetches the app's releases at build time, and an
+          # unauthenticated request is limited to sixty an hour counted by IP,
+          # which on a shared runner is not ours alone. The build throws rather
+          # than shipping an empty changelog, so without this the page is one
+          # busy neighbour away from failing the build.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # The base path is the one thing that cannot be caught by looking at dev.
       # If it regresses, every stylesheet and image 404s in production and the

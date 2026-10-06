@@ -1,0 +1,352 @@
+---
+import { marked } from 'marked'
+
+import { VERSION } from '../consts'
+import Base from '../layouts/Base.astro'
+import Nav from '../components/Nav.astro'
+import Footer from '../components/Footer.astro'
+import { fetchReleases, formatReleaseDate, hasRealNotes, type ReleaseEntry } from '../lib/releases'
+
+/*
+ * Every version, from the releases themselves.
+ *
+ * Fetched at build time rather than in the browser: a static page costs the
+ * visitor nothing, works with scripting off, and does not spend a GitHub API
+ * call per reader against a limit counted by IP address.
+ *
+ * The cost is that the page is only as current as the last build, and the site
+ * builds on its own pushes rather than on the app's releases. `release.yml` in
+ * the app repository sends a repository_dispatch here after it publishes,
+ * which is what closes that gap.
+ */
+const REPO = 'verastack-labs/rigseed-app'
+
+let releases: ReleaseEntry[] = []
+let failure: string | null = null
+
+try {
+  releases = await fetchReleases({
+    repo: REPO,
+    // Present in CI. Locally it is usually absent, which is fine until the
+    // unauthenticated limit of sixty an hour runs out.
+    token: process.env['GITHUB_TOKEN'],
+  })
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error)
+  /*
+   * Loud in CI, survivable locally.
+   *
+   * A changelog that silently renders empty is worse than a failed build: it
+   * deploys, looks finished, and tells every visitor the project has never
+   * shipped anything. In CI that is worth stopping for. On a developer's
+   * machine a missing token and a spent rate limit are the ordinary case, so
+   * the page explains itself and the build continues.
+   */
+  if (process.env['CI']) throw new Error(`Could not build the changelog: ${message}`)
+  console.warn(`[changelog] ${message} Building with an empty list.`)
+  failure = message
+}
+
+marked.setOptions({ gfm: true, breaks: false })
+
+/*
+ * The notes are markdown and are rendered as markdown, unescaped.
+ *
+ * Safe here for one specific reason rather than by assumption: the only people
+ * who can write a GitHub release body are the people who can already push to
+ * this site. There is no third-party input in this path. If release notes ever
+ * became something outside contributors could author, this needs sanitising
+ * before that happens.
+ */
+const rendered = await Promise.all(
+  releases.map(async (release) => ({
+    release,
+    html: hasRealNotes(release) ? await marked.parse(release.notes) : null,
+    date: formatReleaseDate(release.published),
+  })),
+)
+---
+
+<Base
+  title="rigseed changelog"
+  description="Every released version of rigseed and what changed in it, taken from the release notes themselves."
+  version={VERSION}
+  releaseUrl="https://github.com/verastack-labs/rigseed-app/releases/latest"
+>
+  <Nav />
+
+  <main class="wrap page">
+    <header class="head">
+      <h1>What changed</h1>
+      <p class="lede">
+        Every released version, newest first. These are the release notes themselves rather than a
+        summary of them, so this page and the release page can never disagree.
+      </p>
+    </header>
+
+    {
+      rendered.length === 0 ? (
+        <p class="empty">
+          {failure
+            ? 'The release list could not be fetched for this build. Every version is on the releases page.'
+            : 'No releases yet.'}{' '}
+          <a href={`https://github.com/${REPO}/releases`} rel="noopener noreferrer" target="_blank">
+            See the releases on GitHub
+          </a>
+          .
+        </p>
+      ) : (
+        <ol class="list">
+          {rendered.map(({ release, html, date }) => (
+            <li class="entry">
+              <div class="meta">
+                <h2 class="version mono">{release.version}</h2>
+                {date ? <span class="date">{date}</span> : null}
+                {release.prerelease ? <span class="pre">pre-release</span> : null}
+                <a class="source" href={release.url} rel="noopener noreferrer" target="_blank">
+                  Release page
+                </a>
+              </div>
+
+              {html ? (
+                <div class="notes" set:html={html} />
+              ) : (
+                /* A published release whose notes were never written. Said
+                   plainly rather than rendered as a blank space that reads
+                   like a rendering fault. */
+                <p class="unwritten">No notes were written for this release.</p>
+              )}
+            </li>
+          ))}
+        </ol>
+      )
+    }
+  </main>
+
+  <Footer />
+</Base>
+
+<style>
+  .page {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2.5rem, 6vw, 4rem);
+    padding-block: clamp(3rem, 8vw, 5.5rem) clamp(4rem, 9vw, 6rem);
+  }
+
+  .head {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5.5vw, 3rem);
+  }
+
+  .lede {
+    max-width: 58ch;
+    color: var(--text-dim);
+  }
+
+  .empty {
+    color: var(--text-dim);
+  }
+
+  .list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* A rule between versions rather than a card around each. The page is one
+     list read top to bottom, and boxing every entry would make it look like a
+     set of unrelated announcements. */
+  .entry {
+    display: grid;
+    grid-template-columns: 11rem 1fr;
+    gap: 0 2.5rem;
+    padding-block: clamp(1.75rem, 4vw, 2.5rem);
+    border-top: 1px solid var(--line);
+  }
+
+  .entry:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  /* The version column stays with its notes while they scroll past, which is
+     what makes a long entry still answerable to "which version is this". */
+  .meta {
+    position: sticky;
+    top: 5.5rem;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .version {
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+
+  .date,
+  .source,
+  .pre {
+    font-size: 0.8125rem;
+    color: var(--text-dimmer);
+  }
+
+  .pre {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    color: var(--warn);
+  }
+
+  .source {
+    text-decoration: none;
+    width: fit-content;
+    border-bottom: 1px solid transparent;
+    transition: border-color var(--t-fast) ease;
+  }
+
+  .source:hover {
+    color: var(--text-dim);
+    border-bottom-color: var(--line);
+  }
+
+  .unwritten {
+    color: var(--text-dimmer);
+    font-size: 0.875rem;
+  }
+
+  /* The notes come from markdown, so these are the only styles reaching
+     elements this file never wrote. Scoped to .notes for that reason. */
+  .notes {
+    min-width: 0;
+    color: var(--text-dim);
+    font-size: 0.9375rem;
+  }
+
+  .notes :global(h2) {
+    font-size: 1.0625rem;
+    margin: 1.75rem 0 0.6rem;
+    color: var(--text);
+  }
+
+  .notes :global(h2:first-child) {
+    margin-top: 0;
+  }
+
+  .notes :global(h3) {
+    font-size: 0.9375rem;
+    margin: 1.4rem 0 0.5rem;
+    color: var(--text);
+  }
+
+  .notes :global(p) {
+    margin: 0 0 0.85rem;
+    max-width: 68ch;
+  }
+
+  .notes :global(ul),
+  .notes :global(ol) {
+    margin: 0 0 0.95rem;
+    padding-left: 1.15rem;
+    max-width: 68ch;
+  }
+
+  .notes :global(li) {
+    margin-bottom: 0.3rem;
+  }
+
+  .notes :global(strong) {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .notes :global(a) {
+    color: var(--accent);
+  }
+
+  .notes :global(code) {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.85em;
+    background: var(--surface2);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    word-break: break-word;
+  }
+
+  .notes :global(pre) {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    padding: 0.9rem 1rem;
+    margin: 0 0 1rem;
+  }
+
+  .notes :global(pre code) {
+    background: none;
+    padding: 0;
+  }
+
+  /* Release notes carry tables. They are the one thing here that can outgrow
+     the column, so they scroll in their own box rather than widening the page. */
+  .notes :global(table) {
+    display: block;
+    overflow-x: auto;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    margin: 0 0 1rem;
+  }
+
+  .notes :global(th),
+  .notes :global(td) {
+    text-align: left;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--line);
+    vertical-align: top;
+  }
+
+  .notes :global(th) {
+    color: var(--text);
+    font-weight: 600;
+    background: var(--surface2);
+  }
+
+  .notes :global(blockquote) {
+    margin: 0 0 1rem;
+    padding-left: 0.9rem;
+    border-left: 2px solid var(--line);
+    color: var(--text-dimmer);
+  }
+
+  .notes :global(hr) {
+    border: 0;
+    border-top: 1px solid var(--line);
+    margin: 1.5rem 0;
+  }
+
+  @media (max-width: 48rem) {
+    .entry {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .meta {
+      position: static;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.35rem 0.9rem;
+    }
+  }
+</style>
