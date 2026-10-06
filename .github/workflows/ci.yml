@@ -50,6 +50,13 @@ jobs:
 
       - name: Build
         run: pnpm run build
+        env:
+          # The changelog page fetches the app's releases at build time, and an
+          # unauthenticated request is limited to sixty an hour counted by IP,
+          # which on a shared runner is not ours alone. The build throws rather
+          # than shipping an empty changelog, so without this the page is one
+          # busy neighbour away from failing the build.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Duplicated from deploy.yml on purpose. This is the failure that builds
       # green and 404s every asset in production, so it should fail on the pull
