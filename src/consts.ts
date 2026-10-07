@@ -11,10 +11,10 @@
  * When the app releases, this file changes and nothing else does. The hashes
  * are the real published ones, copied from the `.sha256` assets on the release.
  */
-export const VERSION = '0.1.6'
+export const VERSION = '0.1.7'
 
 /** sha256 of rigseed_<VERSION>_aarch64.dmg, as `shasum -a 256` prints it. */
-export const MAC_SHA = '21d1a5b140bb955f11dc34c2b230dd808ee60c7396d8f2aa915aeab13d61ef38'
+export const MAC_SHA = '87a88c84bd12127113d5743e751f0cc5c3270668690ea78aaca7687b9eb0f54d'
 
 /**
  * sha256 of rigseed_<VERSION>_x64-setup.exe.
@@ -22,4 +22,4 @@ export const MAC_SHA = '21d1a5b140bb955f11dc34c2b230dd808ee60c7396d8f2aa915aeab1
  * Uppercase because that is how Get-FileHash prints it, and the terminal on
  * the download page is meant to match what a person actually sees.
  */
-export const WIN_SHA = 'CC90C1A1F8143A693B09FD3F9BC4F97011040FD0B9056AAD4CA4E09E8EB61E08'
+export const WIN_SHA = '9C04F679635992D8D2685EB4335CB46FE1F0795D9B59EA59BE1722C27AB1D2AF'
