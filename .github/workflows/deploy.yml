@@ -60,6 +60,15 @@ jobs:
           # busy neighbour away from failing the build.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Same reasoning as the base path, for the version and checksums the
+      # download page states. They are maintained by hand and drifted across
+      # 0.1.4 and 0.1.5 unnoticed. Failing here also stops a deploy that would
+      # advertise a release still sitting as a draft, whose assets do not exist.
+      - name: Confirm the stated release matches the newest published one
+        run: pnpm run check:release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       # The base path is the one thing that cannot be caught by looking at dev.
       # If it regresses, every stylesheet and image 404s in production and the
       # page still builds green, so it is asserted on the built output.

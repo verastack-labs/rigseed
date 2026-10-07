@@ -22,12 +22,17 @@ const asset = (file: string) => `${repo}/releases/download/${tag}/${file}`
  */
 const platforms = [
   {
+    /*
+     * One Windows installer, not two. latest.json names a single artifact per
+     * platform, so offering an MSI as well meant half of Windows was sent an
+     * installer the updater would never hand them: NSIS installed over an MSI
+     * registration does not upgrade it, it registers alongside it. From 0.1.6
+     * the release produces no .msi at all, so this list would be linking at a
+     * file that is not there.
+     */
     name: 'Windows',
     detail: '10 and 11, 64-bit',
-    files: [
-      { label: 'Installer (.exe)', file: `rigseed_${version}_x64-setup.exe`, primary: true },
-      { label: 'MSI package', file: `rigseed_${version}_x64_en-US.msi` },
-    ],
+    files: [{ label: 'Installer (.exe)', file: `rigseed_${version}_x64-setup.exe`, primary: true }],
     verify: `certutil -hashfile rigseed_${version}_x64-setup.exe SHA256`,
     warning:
       'Windows will show "Windows protected your PC" because the build is not signed. Choose More info, then Run anyway.',
