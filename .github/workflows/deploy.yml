@@ -10,15 +10,19 @@ on:
     paths-ignore:
       - '**/*.md'
       - LICENSE
+  # Kept for the case this file cannot cover on its own: rebuilding to pick up
+  # a changelog entry when nothing here has changed, such as after a release
+  # that was edited, or a prerelease.
   workflow_dispatch:
-  # Sent by the app repository's release workflow after it publishes.
   #
-  # The changelog is fetched from the GitHub releases at build time, so it is
-  # only as current as the last build, and this site builds on its own pushes.
-  # Without this, publishing a release would leave the changelog a version
-  # behind until somebody happened to touch the site.
-  repository_dispatch:
-    types: [app-released]
+  # There was a repository_dispatch here, sent by the app's release workflow so
+  # the changelog would not sit a version behind. It is gone, because the
+  # check:release step below means this site cannot build at all while
+  # src/consts.ts names an older release than the newest published one.
+  #
+  # Every release therefore needs a commit here, and that commit's merge is a
+  # push to main, which is already a trigger. The dispatch arrived before the
+  # commit, so all it did was start a build the guard was certain to fail.
 
 permissions:
   contents: read
