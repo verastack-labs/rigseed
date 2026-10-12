@@ -1,7 +1,7 @@
 ---
 import Wordmark from './Wordmark.astro'
 
-const base = import.meta.env.BASE_URL
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '')
 
 // Source leaves the site, so it can never be the current page and must not be
 // a target the indicator can rest on.

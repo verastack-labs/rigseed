@@ -74,11 +74,16 @@ jobs:
       # Duplicated from deploy.yml on purpose. This is the failure that builds
       # green and 404s every asset in production, so it should fail on the pull
       # request rather than after the merge.
-      - name: Confirm the build is rooted at /rigseed
+      - name: Confirm the build is rooted at the domain root
         run: |
           set -euo pipefail
-          if ! grep -q '"/rigseed/_astro/' dist/index.html; then
-            echo "::error::built asset paths are not under /rigseed, so Pages will 404 them"
+          if grep -q '"/rigseed/' dist/index.html; then
+            echo "::error::built paths still carry the /rigseed prefix, which the subdomain does not serve. Check that astro.config.mjs has no base."
+            grep -o '"/rigseed/[^"]*' dist/index.html | head -3
             exit 1
           fi
-          echo "asset paths are correctly based"
+          if ! grep -q '"/_astro/' dist/index.html; then
+            echo "::error::no /_astro/ asset paths in dist/index.html at all, so this check is not looking at what it thinks it is"
+            exit 1
+          fi
+          echo "asset paths are rooted at /"

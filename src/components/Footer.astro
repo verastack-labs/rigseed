@@ -2,7 +2,7 @@
 import Wordmark from './Wordmark.astro'
 
 const repo = 'https://github.com/verastack-labs/rigseed-app'
-const base = import.meta.env.BASE_URL
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '')
 const year = new Date().getFullYear()
 ---
 
