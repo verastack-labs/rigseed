@@ -12,8 +12,8 @@ export default defineConfig({
   integrations: [
     react(),
     sitemap({
-      // Without this the sitemap lists the same page twice, once as
-      // /rigseed and once as /rigseed/, which is a duplicate-URL signal
+      // Without this the sitemap lists the same page twice, once with a
+      // trailing slash and once without, which is a duplicate-URL signal
       // for something that is one page. Keeping the trailing-slash form
       // matches what Astro emits as canonical.
       filter: (page) => page.endsWith('/'),
