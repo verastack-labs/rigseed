@@ -64,6 +64,7 @@ const onDownload = isCurrent(`${base}/download/`)
             <a
               href={p.href}
               data-page
+              data-home={p.href === `${base}/` ? '' : undefined}
               class:list={{ 'is-current': isCurrent(p.href) }}
               aria-current={isCurrent(p.href) ? 'page' : undefined}
             >
@@ -460,7 +461,7 @@ const onDownload = isCurrent(`${base}/download/`)
 
   @media (max-width: 52rem) {
     /* The button is the first thing to go. Download is already one of the
-       three links at this width, so the bar would be offering it twice. */
+       page links at this width, so the bar would be offering it twice. */
     .cta-slot {
       display: none;
     }
@@ -476,6 +477,7 @@ const onDownload = isCurrent(`${base}/download/`)
   @media (max-width: 40rem) {
     .rail {
       padding-inline: 0.75rem;
+      transition: padding var(--t-slow) var(--ease);
     }
 
     /* Nothing left to rest under once the labels are this tight. */
@@ -485,11 +487,24 @@ const onDownload = isCurrent(`${base}/download/`)
 
     /*
      * Source leaves the site, and at this width it was the link pushing the
-     * row past the edge and getting itself clipped. The three pages are what a
-     * nav is for; Source keeps its place in the footer, where nothing is
+     * row past the edge and getting itself clipped. The pages are what a nav
+     * is for; Source keeps its place in the footer, where nothing is
      * competing for the space.
      */
     .external {
+      display: none;
+    }
+
+    /*
+     * The wordmark is the home link, so the label is saying it twice.
+     *
+     * This used to wait until 22rem, which was right when there were three
+     * pages and they fitted. The changelog made four: the row wants 295px and
+     * the bar has 243px for it, so Changelog was clipped mid-word at every
+     * phone width rather than only the narrowest. Dropping the one label that
+     * duplicates something already in the bar is what makes the rest fit.
+     */
+    .links a[data-home] {
       display: none;
     }
 
@@ -505,12 +520,96 @@ const onDownload = isCurrent(`${base}/download/`)
     .links a {
       padding-inline: 0.5rem;
     }
+
+    /*
+     * The pill's inset moves from the rail into the shell rather than being
+     * added on top of it, so the distance from the screen edge to the
+     * wordmark is 0.75rem in both states and the row never travels.
+     *
+     * On a wide screen the shell growing padding is one half of a
+     * contraction: max-width goes 68rem to 54rem at the same moment, and the
+     * inset reads as the bar drawing itself in. Below 40rem both of those
+     * max-widths are already wider than the viewport, so that half is a no-op
+     * and the padding is the only thing still moving. What was left was a
+     * bare 11.2px sideways lurch, fired every time Chrome on Android hid or
+     * showed its URL bar and nudged scrollY across the 32px threshold.
+     */
+    .is-stuck .rail {
+      padding-inline: 0.25rem;
+    }
+
+    .is-stuck .shell {
+      padding-inline: 0.5rem;
+    }
+
+    /* On a wide screen the wordmark gives up size to the button it is now
+       sharing the bar with. There is no button down here, and 1.45rem has
+       already been traded away for 1.2rem, so the desktop rule was making it
+       grow on scroll instead of shrink and taking the row 1.4px with it. */
+    .is-stuck .mark {
+      --wm-size: 1.2rem;
+    }
   }
 
-  @media (max-width: 22rem) {
-    /* The wordmark is the home link, so the label is saying it twice. */
-    .links a[href$='/rigseed/'] {
-      display: none;
+  /*
+   * Below 24rem the three remaining labels stop fitting on their own. At a
+   * 320px viewport the row wants 240px and the bar has 203px for it, so
+   * Changelog was still clipped mid-word even after the Home label had gone.
+   *
+   * The deficit is 37px and no single lever covers it, so it comes off four
+   * of them at once rather than any one being pushed somewhere ugly: the
+   * wordmark gives up a little more, the gap between it and the links halves,
+   * the labels lose a point of size, and their padding tightens. Measured
+   * rather than guessed, and verified at 320px with room left over.
+   *
+   * The wordmark is pinned in both states here for the same reason as above:
+   * the 40rem rule would otherwise put it back to 1.2rem on scroll and take
+   * the row with it.
+   */
+  @media (max-width: 24rem) {
+    .mark,
+    .is-stuck .mark {
+      --wm-size: 1.05rem;
+    }
+
+    .shell {
+      gap: 0.5rem;
+    }
+
+    .links {
+      font-size: 0.8125rem;
+    }
+
+    .links a {
+      padding-inline: 0.25rem;
+    }
+  }
+
+  /*
+   * At 21rem the name gives way to the seedling.
+   *
+   * The tier above leaves 13px spare at a 320px viewport, which is not a
+   * margin: Inter is self-hosted, but a slow or failed face means the
+   * fallback renders the row wider than that and Changelog is clipped again,
+   * which is the bug this change exists to remove. Dropping the script frees
+   * 47.6px, measured, and turns the narrowest width into the roomiest.
+   *
+   * Hidden rather than removed. The seedling is the home link and the script
+   * is its only text, so display: none would leave a link a screen reader
+   * cannot name. This keeps the name in the accessibility tree and takes it
+   * out of the layout, which is the whole trick.
+   */
+  @media (max-width: 21rem) {
+    /* Reaching into Wordmark, which this file does not own. Marked global
+       deliberately, and scoped under .mark so it cannot touch the footer's
+       copy of the same component. */
+    .mark :global(.wordmark-name) {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
   }
 </style>
