@@ -2,4 +2,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://verastack-labs.github.io/rigseed/sitemap-index.xml
+Sitemap: https://rigseed.verastack.dev/sitemap-index.xml

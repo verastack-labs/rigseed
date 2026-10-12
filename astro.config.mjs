@@ -3,13 +3,12 @@ import { defineConfig } from 'astro/config'
 import react from '@astrojs/react'
 import sitemap from '@astrojs/sitemap'
 
-// GitHub Pages serves this from the repository root of verastack-labs/rigseed,
-// which is a project page, so the site lives under /rigseed rather than at the
-// domain root. `base` has to match or every absolute asset path 404s once
-// deployed while working perfectly in dev.
+// The site has its own subdomain, so it is served from a domain root and
+// needs no `base`. It used to live at verastack-labs.github.io/rigseed, where
+// `base` had to match the repository name or every absolute asset path 404d
+// in production while working perfectly in dev.
 export default defineConfig({
-  site: 'https://verastack-labs.github.io',
-  base: '/rigseed',
+  site: 'https://rigseed.verastack.dev',
   integrations: [
     react(),
     sitemap({

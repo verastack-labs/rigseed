@@ -76,15 +76,25 @@ jobs:
       # The base path is the one thing that cannot be caught by looking at dev.
       # If it regresses, every stylesheet and image 404s in production and the
       # page still builds green, so it is asserted on the built output.
-      - name: Confirm the build is rooted at /rigseed
+      #
+      # The assertion inverted when the site moved to its own subdomain. It
+      # used to require /rigseed/ in front of every asset; now that prefix is
+      # exactly what must not come back, because a stray `base` in
+      # astro.config.mjs would send every asset to a path the subdomain does
+      # not serve.
+      - name: Confirm the build is rooted at the domain root
         run: |
           set -euo pipefail
-          if ! grep -q '"/rigseed/_astro/' dist/index.html; then
-            echo "::error::built asset paths are not under /rigseed, so Pages will 404 them"
-            grep -o '_astro/[^"]*' dist/index.html | head -3
+          if grep -q '"/rigseed/' dist/index.html; then
+            echo "::error::built paths still carry the /rigseed prefix, which the subdomain does not serve. Check that astro.config.mjs has no base."
+            grep -o '"/rigseed/[^"]*' dist/index.html | head -3
             exit 1
           fi
-          echo "asset paths are correctly based"
+          if ! grep -q '"/_astro/' dist/index.html; then
+            echo "::error::no /_astro/ asset paths in dist/index.html at all, so this check is not looking at what it thinks it is"
+            exit 1
+          fi
+          echo "asset paths are rooted at /"
 
       # enablement lets the action create the Pages site if it does not exist.
       # Without it the first deploy of a repository fails with "Get Pages site
