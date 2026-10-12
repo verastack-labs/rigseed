@@ -16,6 +16,10 @@ const base = import.meta.env.BASE_URL.replace(/\/+$/, '')
 
 // Scene times come from the render's own sidecar, so the chapters cannot
 // drift from the film: regenerating it regenerates these.
+// Linked, not served: see the note by the figure caption.
+const MASTER =
+  'https://github.com/verastack-labs/rigseed-app/releases/download/v0.1.7/rigseed-launch-4k.mp4'
+
 const chapters = [
   { at: '0:00', label: 'The engine' },
   { at: '0:09', label: 'The switch' },
@@ -73,10 +77,24 @@ const chapters = [
         />
         <p class="fallback">
           Your browser cannot play this video.
-          <a href={`${base}/rigseed-launch.mp4`}>Download it instead</a> (3.7 MB).
+          <a href={`${base}/rigseed-launch.mp4`}>Download it instead</a> (4.9 MB).
         </p>
       </video>
       <figcaption>
+        {
+          /*
+            The 4K master is linked rather than served. HTML5 video cannot
+            switch resolution on its own, so whatever sits in the source is
+            what every visitor downloads, and 21MB of pixels this column is
+            too narrow to show is a cost with nothing on the other side. The
+            link points at the release asset, so the page can offer the
+            master without the Pages repository carrying a second copy.
+          */
+        }
+        <p class="master">
+          <a href={MASTER} rel="noopener">Download the 4K master</a>
+          <span class="meta">3840&#215;2160, 21 MB</span>
+        </p>
         <ol class="chapters">
           {
             chapters.map((c) => (
@@ -126,6 +144,29 @@ const chapters = [
 
   figcaption {
     margin-top: 1rem;
+  }
+
+  .master {
+    margin: 0 0 0.6rem;
+    font-size: 0.8125rem;
+  }
+
+  .master a {
+    color: var(--text-dim);
+    text-decoration: none;
+    border-bottom: 1px solid var(--line);
+    transition: color var(--t-fast) ease;
+  }
+
+  .master a:hover {
+    color: var(--text);
+  }
+
+  .meta {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6875rem;
+    color: var(--text-dimmer);
+    margin-left: 0.6rem;
   }
 
   .chapters {
