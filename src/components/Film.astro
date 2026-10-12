@@ -1,0 +1,198 @@
+---
+/*
+ * The launch film, fifty-one seconds of the argument this page makes in full.
+ *
+ * It sits after the comparison rather than above it, which is deliberate. The
+ * page's first viewport is the running transfer list and that contract is not
+ * worth trading for a play button; by this point the reader has been given
+ * the before and after as stills and a film is the natural next thing rather
+ * than an interruption. Moving it is one line in index.astro if that reads
+ * wrong once it is live.
+ *
+ * Nothing here autoplays. The film has music, and a page that starts making
+ * noise at somebody is the single rudest thing a site can do.
+ */
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '')
+
+// Scene times come from the render's own sidecar, so the chapters cannot
+// drift from the film: regenerating it regenerates these.
+// Linked, not served: see the note by the figure caption.
+const MASTER =
+  'https://github.com/verastack-labs/rigseed-app/releases/download/v0.1.7/rigseed-launch-4k.mp4'
+
+const chapters = [
+  { at: '0:00', label: 'The engine' },
+  { at: '0:09', label: 'The switch' },
+  { at: '0:21', label: 'What it is' },
+  { at: '0:29', label: 'Your look' },
+  { at: '0:36', label: 'Your layout' },
+  { at: '0:46', label: 'Close' },
+]
+---
+
+<section class="film" id="film">
+  <div class="wrap">
+    <p class="eyebrow">The film</p>
+    <h2>Fifty-one seconds</h2>
+    <p class="lede">
+      The same argument this page makes, in motion. Real captures on both sides: the stock client is
+      qBittorrent 5.0.5 on official Linux ISO torrents, and the rigseed side is the app's own
+      interface.
+    </p>
+
+    {
+      /*
+        preload="metadata" rather than "auto". The poster is what people see
+        until they press play, and pulling 3.7MB down for everyone who scrolls
+        past is a cost paid by the many for the few.
+
+        playsinline keeps iOS from taking the whole screen the moment it
+        starts, which on a page like this reads as the site hijacking the
+        phone.
+      */
+    }
+    <figure class="frame">
+      <video
+        controls
+        preload="metadata"
+        playsinline
+        poster={`${base}/rigseed-launch-poster.jpg`}
+        width="1920"
+        height="1080"
+      >
+        <source src={`${base}/rigseed-launch.mp4`} type="video/mp4" />
+        {
+          /*
+            The film has no voice, so these captions are its on-screen text.
+            Somebody reading with the sound off, or with a screen reader, gets
+            the same sentences rather than a silent picture.
+          */
+        }
+        <track
+          kind="captions"
+          src={`${base}/rigseed-launch.vtt`}
+          srclang="en"
+          label="English"
+          default
+        />
+        <p class="fallback">
+          Your browser cannot play this video.
+          <a href={`${base}/rigseed-launch.mp4`}>Download it instead</a> (4.9 MB).
+        </p>
+      </video>
+      <figcaption>
+        {
+          /*
+            The 4K master is linked rather than served. HTML5 video cannot
+            switch resolution on its own, so whatever sits in the source is
+            what every visitor downloads, and 21MB of pixels this column is
+            too narrow to show is a cost with nothing on the other side. The
+            link points at the release asset, so the page can offer the
+            master without the Pages repository carrying a second copy.
+          */
+        }
+        <p class="master">
+          <a href={MASTER} rel="noopener">Download the 4K master</a>
+          <span class="meta">3840&#215;2160, 21 MB</span>
+        </p>
+        <ol class="chapters">
+          {
+            chapters.map((c) => (
+              <li>
+                <span class="at">{c.at}</span>
+                {c.label}
+              </li>
+            ))
+          }
+        </ol>
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<style>
+  h2 {
+    margin: 0 0 0.75rem;
+    font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+    letter-spacing: -0.02em;
+  }
+
+  .frame {
+    margin: clamp(1.75rem, 4vw, 2.75rem) 0 0;
+  }
+
+  /*
+   * The border and radius are the page's, not the player's. A bare video
+   * element on this ground reads as a hole cut in the page; the hairline and
+   * the shadow put it on the same plane as the hero surface.
+   */
+  video {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg, 12px);
+    background: var(--surface);
+    box-shadow: 0 24px 60px -32px color-mix(in srgb, var(--shadow-color, #000) 90%, transparent);
+  }
+
+  .fallback {
+    padding: 2rem;
+    color: var(--text-dim);
+  }
+
+  figcaption {
+    margin-top: 1rem;
+  }
+
+  .master {
+    margin: 0 0 0.6rem;
+    font-size: 0.8125rem;
+  }
+
+  .master a {
+    color: var(--text-dim);
+    text-decoration: none;
+    border-bottom: 1px solid var(--line);
+    transition: color var(--t-fast) ease;
+  }
+
+  .master a:hover {
+    color: var(--text);
+  }
+
+  .meta {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6875rem;
+    color: var(--text-dimmer);
+    margin-left: 0.6rem;
+  }
+
+  .chapters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.8125rem;
+    color: var(--text-dim);
+  }
+
+  /* Mono for the timecodes, the same rule the rest of the site follows for
+     anything that is a number. */
+  .at {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6875rem;
+    color: var(--text-dimmer);
+    margin-right: 0.45rem;
+  }
+
+  @media (max-width: 34rem) {
+    .chapters {
+      gap: 0.3rem 1rem;
+      font-size: 0.75rem;
+    }
+  }
+</style>
