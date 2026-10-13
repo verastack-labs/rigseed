@@ -1,0 +1,267 @@
+---
+import { VERSION } from '../consts'
+import Base from '../layouts/Base.astro'
+import Nav from '../components/Nav.astro'
+import Footer from '../components/Footer.astro'
+
+/*
+ * Written because the Microsoft Store requires a privacy policy URL, and every
+ * other store asks for one eventually. But a policy written to satisfy a form
+ * is the kind nobody reads, so this one answers the question a person actually
+ * has: what leaves my machine, and who can see it.
+ *
+ * The honest answer is uncomfortable, and it is the reason this page leads with
+ * the swarm rather than burying it under a cookie paragraph. rigseed collects
+ * nothing at all, which would make for a very short and very smug page; the
+ * part that matters to a reader is that BitTorrent itself is public, and that
+ * is true of every client, not a rigseed failing. Saying so plainly is worth
+ * more than a page that technically discloses it in clause nine.
+ *
+ * Every claim here is checkable against the source, which is why the page keeps
+ * naming files and endpoints instead of saying "certain information".
+ */
+
+const repo = 'https://github.com/verastack-labs/rigseed-app'
+const updated = 'October 2026'
+---
+
+<Base
+  title="rigseed privacy"
+  description="What rigseed sends, what it stores, and who can see your activity. No analytics, no accounts, and an honest answer about what BitTorrent reveals."
+  version={VERSION}
+  releaseUrl={`${repo}/releases/latest`}
+>
+  <Nav />
+
+  <main class="wrap page">
+    <header class="head">
+      <h1>Privacy</h1>
+      <p class="lede">
+        rigseed has no analytics, no telemetry, no accounts and no servers of its own. The
+        interesting part of this page is not what rigseed collects, which is nothing, but what
+        BitTorrent itself reveals, which is a great deal.
+      </p>
+      <p class="updated mono">Last updated {updated}</p>
+    </header>
+
+    <section class="band">
+      <h2>The part that actually matters</h2>
+      <p>
+        When you download or seed a torrent, your IP address is visible to every other peer in that
+        swarm, to the trackers coordinating it, and to anyone running the distributed hash table
+        nodes your client talks to. This is not a flaw and it is not specific to rigseed. It is how
+        BitTorrent works: peers connect directly to each other, so each one necessarily learns the
+        other's address.
+      </p>
+      <p>
+        That means third parties can and do record which torrents an address participated in.
+        Anti-piracy monitors join swarms for exactly this purpose. rigseed cannot change this, and
+        no torrent client can. If that matters for your situation, the protection has to come from
+        how you connect, not from which client you choose.
+      </p>
+    </section>
+
+    <section>
+      <h2>What rigseed sends</h2>
+      <p>Three things leave your machine, and only three.</p>
+
+      <dl class="facts">
+        <dt>Update checks</dt>
+        <dd>
+          rigseed asks GitHub whether a newer release exists, by requesting
+          <code class="mono">{repo}/releases/latest/download/latest.json</code>. GitHub sees your IP
+          address and user agent, as it would for any file you downloaded from it. The response is
+          verified against a signing key compiled into the app, so a tampered reply is rejected
+          rather than installed. Builds installed from a store do not make this request at all,
+          because the store handles updates.
+        </dd>
+
+        <dt>Torrent traffic</dt>
+        <dd>
+          Everything described above: trackers, peers and DHT nodes, handled by the bundled
+          <code class="mono">qbittorrent-nox</code>. This only happens for torrents you add.
+        </dd>
+
+        <dt>Search plugins, if you use them</dt>
+        <dd>
+          qBittorrent's search feature fetches plugins from
+          <code class="mono">plugins.qbittorrent.org</code> and queries the sites those plugins target.
+          It is off until you enable it.
+        </dd>
+      </dl>
+
+      <p class="note">
+        There is no fourth thing. No crash reporter, no usage statistics, no &ldquo;anonymous&rdquo;
+        identifiers, no first-run ping. You can check this: the source is public and searching it
+        for the usual analytics names returns nothing.
+      </p>
+    </section>
+
+    <section>
+      <h2>What rigseed stores, and where</h2>
+      <p>
+        Your settings, your torrent list and qBittorrent's own configuration are written to your
+        computer and stay there. Nothing is synced, backed up or uploaded anywhere.
+      </p>
+      <ul class="paths">
+        <li><code class="mono">%APPDATA%\dev.verastack.rigseed</code> on Windows</li>
+        <li>
+          <code class="mono">~/Library/Application Support/dev.verastack.rigseed</code> on macOS
+        </li>
+        <li><code class="mono">~/.local/share/dev.verastack.rigseed</code> on Linux</li>
+      </ul>
+      <p>
+        Deleting that directory removes everything rigseed remembers. Uninstalling does not touch
+        the files you downloaded, which live wherever you told it to put them.
+      </p>
+    </section>
+
+    <section>
+      <h2>This website</h2>
+      <p>
+        These pages are static files on GitHub Pages. There are no cookies, no analytics and no
+        third-party scripts. GitHub, as the host, logs requests including IP addresses; that is
+        covered by
+        <a
+          href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement"
+          rel="noopener noreferrer"
+          target="_blank">GitHub's privacy statement</a
+        >. Fonts are served from these pages rather than from a font provider, so loading the site
+        does not tell anyone else that you did.
+      </p>
+      <p>
+        The changelog is built from the release notes when the site is built, not when you visit it,
+        so reading it does not contact GitHub on your behalf.
+      </p>
+    </section>
+
+    <section>
+      <h2>If you installed from a store</h2>
+      <p>
+        Stores run their own collection, which rigseed has no part in and no visibility into. If you
+        installed from one, its policy applies alongside this one: the
+        <a
+          href="https://privacy.microsoft.com/privacystatement"
+          rel="noopener noreferrer"
+          target="_blank">Microsoft privacy statement</a
+        >
+        for the Microsoft Store, or
+        <a href="https://flathub.org/terms-and-conditions" rel="noopener noreferrer" target="_blank"
+          >Flathub's terms</a
+        > for Flatpak.
+      </p>
+    </section>
+
+    <section>
+      <h2>Your data, and asking about it</h2>
+      <p>
+        Because rigseed holds nothing about you, there is nothing to export, correct or delete on
+        request; the data is already entirely in your hands. If you want to raise something, open an
+        issue on
+        <a href={`${repo}/issues`} rel="noopener noreferrer" target="_blank">the tracker</a> or write
+        to <a href="mailto:verastack.labs@gmail.com">verastack.labs@gmail.com</a>.
+      </p>
+      <p>
+        If this policy changes, the updated date above changes with it, and the change goes through
+        the public repository like everything else, so the history is readable rather than
+        announced.
+      </p>
+    </section>
+  </main>
+
+  <Footer />
+</Base>
+
+<style>
+  .page {
+    padding-block: clamp(2.5rem, 7vw, 4.5rem);
+  }
+
+  .head {
+    max-width: 62ch;
+  }
+
+  h1 {
+    margin: 0;
+  }
+
+  .lede {
+    margin-top: 0.875rem;
+    color: var(--text-dim);
+  }
+
+  .updated {
+    margin-top: 1.25rem;
+    font-size: 0.75rem;
+    color: var(--text-dimmer);
+  }
+
+  section {
+    margin-top: clamp(2.25rem, 5vw, 3.25rem);
+    max-width: 68ch;
+  }
+
+  section h2 {
+    font-size: 1.125rem;
+    margin: 0 0 0.75rem;
+  }
+
+  section p {
+    color: var(--text-dim);
+    margin: 0 0 0.875rem;
+  }
+
+  /*
+   * The swarm paragraph is the one thing on this page a reader would regret
+   * skimming, so it is the one thing that does not look like the rest of it.
+   */
+  .band {
+    border-left: 2px solid var(--accent);
+    padding-left: clamp(1rem, 3vw, 1.5rem);
+  }
+
+  .band p {
+    color: var(--text);
+  }
+
+  .facts {
+    margin: 1.25rem 0 0;
+  }
+
+  .facts dt {
+    font-weight: 500;
+    margin-top: 1.25rem;
+  }
+
+  .facts dd {
+    margin: 0.375rem 0 0;
+    color: var(--text-dim);
+  }
+
+  code {
+    font-size: 0.8125em;
+    color: var(--text);
+    overflow-wrap: anywhere;
+  }
+
+  .paths {
+    margin: 0 0 0.875rem;
+    padding-left: 1.125rem;
+    color: var(--text-dim);
+  }
+
+  .paths li {
+    margin-bottom: 0.375rem;
+  }
+
+  .note {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.875rem;
+  }
+
+  a {
+    color: inherit;
+  }
+</style>
