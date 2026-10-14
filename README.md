@@ -164,5 +164,4 @@ archive for this reason.
 
 ## Contact
 
-- Project: verastack.labs@gmail.com
-- Maintainer: therealriganb@gmail.com
+- Project and maintainer: rigan@verastack.dev
