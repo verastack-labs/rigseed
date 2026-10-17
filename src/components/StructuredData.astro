@@ -37,6 +37,10 @@ const application = {
   softwareVersion: version,
   url: base,
   downloadUrl: releaseUrl,
+  // The repository belongs here rather than in the organisation's sameAs: it
+  // is where this application's source lives, not another profile of the
+  // company that makes it.
+  codeRepository: 'https://github.com/verastack-labs/rigseed-app',
   softwareRequirements: 'qBittorrent is bundled. No separate install is required.',
   description:
     'A desktop client for qBittorrent. It drives the daemon over the Web API it already exposes, adding a first-run setup and a theming layer where the accent tints every surface.',
@@ -54,11 +58,28 @@ const application = {
   },
 }
 
+/*
+ * `url` is verastack.dev rather than the GitHub organisation now that the
+ * domain exists. An organisation's `url` is meant to be its own home, and the
+ * GitHub org is one profile among others, which is what `sameAs` is for.
+ *
+ * The logo is the studio's own icon, served from verastack.dev, not rigseed's
+ * mark. This block describes Verastack Labs, and rigseed's mark is the logo of
+ * a product it makes. 180 square because schema consumers want a raster of at
+ * least 112, and the SVG at /icon.svg is not one.
+ *
+ * `sameAs` holds the organisation elsewhere, so it is the GitHub org rather
+ * than any single repository: a product repository is not another profile of
+ * the company. The repository belongs to the application below, which is where
+ * `codeRepository` now points.
+ */
 const organisation = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'Verastack Labs',
-  url: 'https://github.com/verastack-labs',
+  url: 'https://verastack.dev',
+  logo: 'https://verastack.dev/apple-touch-icon.png',
+  sameAs: ['https://github.com/verastack-labs'],
   email: 'rigan@verastack.dev',
 }
 ---
