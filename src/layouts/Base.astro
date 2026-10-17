@@ -173,5 +173,34 @@ const canonical = new URL(Astro.url.pathname, Astro.site).toString()
       the finish review, the verdict, and DESIGN.md
     -->
     <slot />
+
+    {
+      /*
+       * Cloudflare Web Analytics, and the only third-party request this site
+       * makes. Everything else, fonts included, is served from here, which is
+       * why that one request is worth being deliberate about.
+       *
+       * Cookieless, so there is no consent banner. That is a real property of
+       * this product rather than a claim made for convenience: it stores
+       * nothing on the visitor's machine and builds no cross-site profile.
+       * What it does do is tell Cloudflare that someone loaded this page, and
+       * /privacy says so plainly, because the page that exists to be honest
+       * about what leaves your machine cannot quietly acquire a beacon.
+       *
+       * The token is public by design; it identifies the site, not a secret.
+       *
+       * Production only. A dev server reload is not a visit, and counting it
+       * makes the numbers lie in the direction most flattering to us.
+       */
+    }
+    {
+      import.meta.env.PROD && (
+        <script
+          type="module"
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "e1b43467f5354d318697751b84a55533"}'
+        />
+      )
+    }
   </body>
 </html>

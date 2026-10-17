@@ -27,7 +27,7 @@ const updated = 'October 2026'
 
 <Base
   title="rigseed privacy"
-  description="What rigseed sends, what it stores, and who can see your activity. No analytics, no accounts, and an honest answer about what BitTorrent reveals."
+  description="What rigseed sends, what it stores, and who can see your activity. No telemetry in the app, and an honest answer about what BitTorrent reveals."
   version={VERSION}
   releaseUrl={`${repo}/releases/latest`}
 >
@@ -37,9 +37,10 @@ const updated = 'October 2026'
     <header class="head">
       <h1>Privacy</h1>
       <p class="lede">
-        rigseed has no analytics, no telemetry, no accounts and no servers of its own. The
-        interesting part of this page is not what rigseed collects, which is nothing, but what
-        BitTorrent itself reveals, which is a great deal.
+        The rigseed app has no analytics, no telemetry, no accounts and no servers of its own. This
+        website counts page views, and says so below. The interesting part of this page is still not
+        what rigseed collects, which is nothing, but what BitTorrent itself reveals, which is a
+        great deal.
       </p>
       <p class="updated mono">Last updated {updated}</p>
     </header>
@@ -92,8 +93,9 @@ const updated = 'October 2026'
 
       <p class="note">
         There is no fourth thing. No crash reporter, no usage statistics, no &ldquo;anonymous&rdquo;
-        identifiers, no first-run ping. You can check this: the source is public and searching it
-        for the usual analytics names returns nothing.
+        identifiers, no first-run ping. You can check this: the app&rsquo;s source is public and
+        searching it for the usual analytics names returns nothing. That is the app. This website is
+        a separate thing and counts page views, which is further down.
       </p>
     </section>
 
@@ -119,15 +121,26 @@ const updated = 'October 2026'
     <section>
       <h2>This website</h2>
       <p>
-        These pages are static files on GitHub Pages. There are no cookies, no analytics and no
-        third-party scripts. GitHub, as the host, logs requests including IP addresses; that is
-        covered by
+        These pages are static files on GitHub Pages. There are no cookies. GitHub, as the host,
+        logs requests including IP addresses; that is covered by
         <a
           href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement"
           rel="noopener noreferrer"
           target="_blank">GitHub's privacy statement</a
-        >. Fonts are served from these pages rather than from a font provider, so loading the site
-        does not tell anyone else that you did.
+        >. Fonts are served from these pages rather than from a font provider.
+      </p>
+      <p>
+        One script is loaded from elsewhere: <strong>Cloudflare Web Analytics</strong>, from
+        <code class="mono">static.cloudflareinsights.com</code>. It counts page views so we can tell
+        whether anyone is reading this. It sets no cookies, stores nothing on your machine and
+        builds no profile that follows you to other sites, which is why there is no consent banner
+        to click past. It does mean Cloudflare sees that a request for this page was made, and what
+        it collects is covered by
+        <a
+          href="https://www.cloudflare.com/web-analytics-privacy/"
+          rel="noopener noreferrer"
+          target="_blank">their privacy summary for the product</a
+        >. Blocking it changes nothing about how the site works.
       </p>
       <p>
         The changelog is built from the release notes when the site is built, not when you visit it,
