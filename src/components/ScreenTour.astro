@@ -111,6 +111,8 @@ const steps = [
 </section>
 
 <script>
+  import { onWidthResize } from '../lib/viewport'
+
   /*
    * Re-run on every navigation, because the router keeps this module alive across page changes and the steps it measures are replaced underneath it.
    *
@@ -163,7 +165,7 @@ const steps = [
         },
         { passive: true, signal },
       )
-      window.addEventListener('resize', update, { signal })
+      onWidthResize(update, signal)
 
       steps[0]?.classList.add('is-active')
       update()
