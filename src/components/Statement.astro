@@ -43,6 +43,8 @@ const words = line.split(' ')
 </section>
 
 <script>
+  import { onWidthResize } from '../lib/viewport'
+
   /*
    * Progress through the sentence is taken from where the block sits in the
    * viewport, not from an observer threshold, because the words light
@@ -92,7 +94,7 @@ const words = line.split(' ')
       },
       { passive: true, signal },
     )
-    window.addEventListener('resize', update, { signal })
+    onWidthResize(update, signal)
     update()
   }
 
