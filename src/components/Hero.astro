@@ -112,6 +112,8 @@ const version = `v${VERSION}`
 </header>
 
 <script>
+  import { onWidthResize } from '../lib/viewport'
+
   /*
    * Re-run on every navigation, because the router keeps this module alive across page changes and the element it drives is replaced underneath it.
    *
@@ -168,7 +170,7 @@ const version = `v${VERSION}`
         },
         { passive: true, signal },
       )
-      window.addEventListener('resize', update, { signal })
+      onWidthResize(update, signal)
       update()
     }
   }

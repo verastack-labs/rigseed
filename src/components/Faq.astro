@@ -1,0 +1,116 @@
+---
+/*
+ * The three questions a reader has left by the time they reach the bottom.
+ *
+ * It sits before the close rather than after it, because the close is the
+ * bookend and the ask: answering objections after the download button is
+ * answering them too late.
+ *
+ * Plain headings and paragraphs, not a disclosure widget. Collapsed answers
+ * are the convention and they are the wrong call here for the same reason the
+ * statement does not start at zero opacity: content behind an interaction is
+ * absent from a shared link's preview, from a reader who lands mid-page, and
+ * from anything that does not run scripts. This block exists partly to be read
+ * by machines, so hiding it would defeat the thing it is for.
+ *
+ * Every answer is already said elsewhere on the site or in the app's README.
+ * Nothing new is claimed here, which is the point: an FAQ that invents
+ * promises is how a site ends up disagreeing with itself.
+ */
+
+const faqs = [
+  {
+    q: 'Is rigseed free?',
+    // Close.astro: "Free and open source, under Apache 2.0."
+    a: 'Yes. rigseed is free and open source under Apache 2.0. There is no paid tier, no account and no trial.',
+  },
+  {
+    q: 'Which platforms does it run on?',
+    // The release carries exactly these, and macOS is Apple Silicon only.
+    a: 'Windows, macOS on Apple Silicon, and Linux as a .deb, a .rpm or an AppImage. The Linux builds are made against glibc 2.35, which covers Ubuntu 22.04 and newer and Debian 12 and newer.',
+  },
+  {
+    q: 'Does it work with a qBittorrent I already run?',
+    // rigseed-app README: "Or point at your own | Remote instances are a
+    // first-class mode, not an afterthought."
+    a: 'Yes. rigseed brings its own qBittorrent daemon, so there is nothing to install or configure first, and pointing it at an instance you already run is a first-class mode rather than an afterthought.',
+  },
+]
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+}
+---
+
+<section class="faq">
+  <div class="wrap inner">
+    <h2>Before you download</h2>
+
+    <dl>
+      {
+        faqs.map(({ q, a }) => (
+          <>
+            <dt>{q}</dt>
+            <dd>{a}</dd>
+          </>
+        ))
+      }
+    </dl>
+  </div>
+</section>
+
+{
+  /*
+   * Built from the same array the page renders, so the markup and the
+   * structured data cannot disagree. Two hand-maintained copies of the same
+   * three answers is the failure this repository keeps finding.
+   */
+}
+<script is:inline type="application/ld+json" set:html={JSON.stringify(schema)} />
+
+<style>
+  .faq {
+    border-top: 1px solid var(--line);
+    padding-block: clamp(3rem, 8vw, 5rem);
+  }
+
+  h2 {
+    margin: 0 0 clamp(1.5rem, 4vw, 2.25rem);
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+    letter-spacing: -0.02em;
+  }
+
+  dl {
+    margin: 0;
+    display: grid;
+    gap: clamp(1.5rem, 4vw, 2rem);
+  }
+
+  @media (min-width: 52rem) {
+    dl {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2.5rem;
+    }
+  }
+
+  dt {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.65;
+    color: var(--text-dim);
+    max-width: 46ch;
+  }
+</style>
